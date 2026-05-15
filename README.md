@@ -1,2 +1,1 @@
-# quanttide-example-of-founder
-Example repository for quanttide-founder
+# 量潮创始人实验室
