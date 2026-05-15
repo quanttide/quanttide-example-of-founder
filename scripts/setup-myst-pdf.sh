@@ -23,6 +23,28 @@ check_sudo() {
   sudo -n true 2>/dev/null
 }
 
+fix_broken_driver() {
+  local driver_dir="/usr/src/AIC8800/drivers/aic8800"
+  local pkg="aic8800d80fdrvpackage"
+  if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+    return
+  fi
+  if dpkg -s "$pkg" 2>/dev/null | grep -q "Status.*install ok installed"; then
+    return
+  fi
+  info "Fixing broken Wi-Fi driver ($pkg)..."
+  sudo make -C "$driver_dir" clean >/dev/null 2>&1 || true
+  if sudo make -C "$driver_dir" EXTRA_CFLAGS="-Wno-error" >/dev/null 2>&1; then
+    sudo make -C "$driver_dir" install EXTRA_CFLAGS="-Wno-error" >/dev/null 2>&1 || true
+  fi
+  sudo dpkg --configure -a
+  if dpkg -s "$pkg" 2>/dev/null | grep -q "Status.*install ok installed"; then
+    ok "Wi-Fi driver fixed"
+  else
+    warn "Wi-Fi driver still broken, proceeding anyway..."
+  fi
+}
+
 install_texlive() {
   local pkgs=(
     texlive-xetex
@@ -83,6 +105,7 @@ main() {
 
   check_myst
   check_pandoc
+  fix_broken_driver
   install_texlive
   check_latexmk
   check_xelatex
