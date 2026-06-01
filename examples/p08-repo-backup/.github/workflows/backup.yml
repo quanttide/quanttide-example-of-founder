@@ -1,0 +1,75 @@
+# 仓库镜像备份工作流
+# 读取 backup-config.yaml，将源组织仓库镜像到备份组织
+# 备份仓库为 private，仅只读用途
+
+name: 仓库备份
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      repo_filter:
+        description: "指定备份单个仓库（留空则备份全部）"
+        required: false
+        type: string
+
+env:
+  SOURCE_ORG: quanttide
+  TARGET_ORG: quanttide-backup
+  CONFIG_PATH: backup-config.yaml
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 读取配置
+        id: config
+        run: |
+          echo "repos=$(yq '.backup.repos[]' $CONFIG_PATH | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: 安装 gh CLI
+        run: |
+          type gh || (sudo apt update && sudo apt install gh -y)
+
+      - name: 登录备份组织
+        run: |
+          echo "${{ secrets.BACKUP_PAT }}" | gh auth login --with-token
+
+      - name: 遍历备份
+        run: |
+          REPOS="${{ steps.config.outputs.repos }}"
+          FILTER="${{ inputs.repo_filter || '' }}"
+
+          for REPO in $REPOS; do
+            if [ -n "$FILTER" ] && [ "$FILTER" != "$REPO" ]; then
+              continue
+            fi
+
+            echo "=== 备份 $REPO ==="
+
+            # 检查备份仓库是否存在，不存在则创建
+            if ! gh repo view "$TARGET_ORG/$REPO" &>/dev/null; then
+              echo "创建备份仓库: $TARGET_ORG/$REPO"
+              gh repo create "$TARGET_ORG/$REPO" --private --description "Backup of $SOURCE_ORG/$REPO"
+            fi
+
+            # 镜像克隆并推送
+            git clone --mirror "https://github.com/$SOURCE_ORG/$REPO.git" "/tmp/$REPO.git"
+            cd "/tmp/$REPO.git"
+            git remote add backup "https://github.com/$TARGET_ORG/$REPO.git"
+            git push --mirror backup
+            cd /tmp
+            rm -rf "/tmp/$REPO.git"
+
+            echo "完成: $REPO"
+            echo "---"
+          done
+
+      - name: 记录备份日志
+        run: |
+          echo "## $(date -u '+%Y-%m-%d %H:%M UTC')" >> docs/backup-log.md
+          echo "状态: 完成" >> docs/backup-log.md
+          echo "" >> docs/backup-log.md
