@@ -28,7 +28,9 @@
 Function {
   id: string
   name: string
-  type: 'course' | 'consulting' | 'product' | 'operation'
+  type: 'course' | 'consulting' | 'product' | 'market' | 'tech'
+  // course=课程研发, consulting=咨询服务, product=产品开发
+  // market=市场推广, tech=技术支持（operation 拆分为 market + tech）
   inputs: Resource[]
   outputs: Deliverable[]
   dependencies: string[]  // function ids

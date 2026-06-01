@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>秘书处任务分诊系统 — PoC 04</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; padding: 20px; }
+.header { max-width: 1400px; margin: 0 auto 20px; }
+.header h1 { font-size: 24px; font-weight: 700; color: #1a1a2e; display: flex; align-items: center; gap: 10px; }
+.header h1 small { font-size: 14px; font-weight: 400; color: #888; }
+.stats-bar { max-width: 1400px; margin: 0 auto 20px; display: flex; gap: 12px; flex-wrap: wrap; }
+.stat-card { background: #fff; border-radius: 10px; padding: 14px 20px; flex: 1; min-width: 140px; box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; flex-direction: column; }
+.stat-card .label { font-size: 12px; color: #888; margin-bottom: 4px; }
+.stat-card .value { font-size: 22px; font-weight: 700; }
+.stat-card .sub { font-size: 12px; color: #888; margin-top: 2px; }
+.stat-card.coo { border-left: 4px solid #3b82f6; }
+.stat-card.cto { border-left: 4px solid #22c55e; }
+.stat-card.secretariat { border-left: 4px solid #a855f7; }
+.main-layout { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+.left-panel { display: flex; flex-direction: column; gap: 16px; }
+.form-card, .result-card, .preset-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.form-card h3, .result-card h3, .preset-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #374151; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 4px; }
+.form-group input[type="text"], .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; transition: border .2s; }
+.form-group input[type="text"]:focus, .form-group select:focus { border-color: #3b82f6; }
+.slider-group { display: flex; align-items: center; gap: 10px; }
+.slider-group input[type="range"] { flex: 1; accent-color: #3b82f6; }
+.slider-group .slider-val { font-size: 18px; font-weight: 700; color: #3b82f6; min-width: 24px; text-align: center; }
+.btn { padding: 8px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+.btn:hover { opacity: .85; }
+.btn-primary { background: #3b82f6; color: #fff; width: 100%; }
+.btn-sm { padding: 4px 12px; font-size: 12px; border-radius: 6px; }
+.btn-outline { background: transparent; border: 1px solid #d1d5db; color: #555; }
+.btn-outline:hover { background: #f3f4f6; }
+.btn-warning { background: #f59e0b; color: #fff; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-success { background: #22c55e; color: #fff; }
+.btn-secondary { background: #8b5cf6; color: #fff; }
+
+.result-card { display: none; }
+.result-card.visible { display: block; }
+.result-task-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.result-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-type-商务 { background: #dbeafe; color: #1d4ed8; }
+.badge-type-技术 { background: #dcfce7; color: #15803d; }
+.badge-type-行政 { background: #f3e8ff; color: #7c3aed; }
+.badge-type-管理 { background: #fef3c7; color: #b45309; }
+.badge-priority-critical { background: #fecaca; color: #b91c1c; }
+.badge-priority-high { background: #fed7aa; color: #c2410c; }
+.badge-priority-medium { background: #fef08a; color: #854d0e; }
+.badge-priority-low { background: #e5e7eb; color: #4b5563; }
+.badge-office-coo { background: #dbeafe; color: #1d4ed8; }
+.badge-office-cto { background: #dcfce7; color: #15803d; }
+.badge-office-秘书处 { background: #f3e8ff; color: #7c3aed; }
+.visual-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.visual-row .label { font-size: 12px; color: #888; min-width: 60px; }
+.dots { display: flex; gap: 4px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: #e5e7eb; }
+.dot.filled { background: #3b82f6; }
+.dot.filled.orange { background: #f59e0b; }
+.confidence-bar { height: 6px; background: #e5e7eb; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+.confidence-bar .fill { height: 100%; border-radius: 3px; transition: width .4s; }
+.explain-text { font-size: 13px; color: #666; margin: 8px 0; padding: 8px 12px; background: #f9fafb; border-radius: 8px; line-height: 1.5; }
+.result-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+.preset-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.preset-tag { padding: 4px 12px; border-radius: 16px; font-size: 12px; background: #f3f4f6; color: #555; cursor: pointer; border: 1px solid #e5e7eb; transition: all .2s; }
+.preset-tag:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.preset-tag .id { font-weight: 700; margin-right: 4px; }
+
+.kanban-area { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.kanban-col { background: #f8fafc; border-radius: 12px; display: flex; flex-direction: column; min-height: 400px; }
+.kanban-col .col-header { padding: 14px 16px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 15px; color: #fff; }
+.kanban-col .col-header .count { font-size: 12px; opacity: .8; }
+.kanban-col.coo .col-header { background: #3b82f6; }
+.kanban-col.cto .col-header { background: #22c55e; }
+.kanban-col.secretariat .col-header { background: #a855f7; }
+.kanban-col .col-body { padding: 12px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.kanban-col .col-footer { padding: 10px 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #888; text-align: center; }
+
+.task-card { background: #fff; border-radius: 10px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,.06); cursor: pointer; transition: all .2s; border-left: 4px solid #e5e7eb; }
+.task-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+.task-card .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.task-card .card-title { font-size: 14px; font-weight: 600; line-height: 1.4; }
+.task-card .card-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.task-card .card-badges .badge { font-size: 11px; padding: 1px 8px; }
+.task-card .card-meta { display: flex; gap: 12px; font-size: 11px; color: #888; }
+.task-card .card-meta span { display: flex; align-items: center; gap: 3px; }
+.task-card .status-toggle { display: flex; gap: 2px; margin-top: 6px; }
+.task-card .status-btn { padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; color: #888; }
+.task-card .status-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.task-card .status-btn.done-active { background: #22c55e; color: #fff; border-color: #22c55e; }
+.task-card.priority-critical { border-left-color: #ef4444; }
+.task-card.priority-high { border-left-color: #f97316; }
+.task-card.priority-medium { border-left-color: #eab308; }
+.task-card.priority-low { border-left-color: #9ca3af; }
+.task-card .card-office-toggle { font-size: 11px; color: #3b82f6; cursor: pointer; margin-top: 4px; opacity: .7; }
+.task-card .card-office-toggle:hover { opacity: 1; text-decoration: underline; }
+
+.override-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1000; align-items: center; justify-content: center; }
+.override-modal.active { display: flex; }
+.modal-content { background: #fff; border-radius: 14px; padding: 24px; width: 360px; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.2); }
+.modal-content h3 { margin-bottom: 16px; font-size: 16px; }
+.modal-content .form-group { margin-bottom: 14px; }
+.modal-content .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+@media (max-width: 900px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .kanban-area { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 秘书处任务分诊系统 <small>PoC 04 — Eisenhower 自动分诊</small></h1>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="main-layout">
+  <div class="left-panel">
+    <div class="form-card">
+      <h3>➕ 新建任务</h3>
+      <div class="form-group">
+        <label>任务描述</label>
+        <input type="text" id="taskDesc" placeholder="请输入任务描述..." />
+      </div>
+      <div class="form-group">
+        <label>类型</label>
+        <select id="taskType">
+          <option value="商务">商务</option>
+          <option value="技术">技术</option>
+          <option value="行政">行政</option>
+          <option value="管理">管理</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>紧急度 (Urgency)</label>
+        <div class="slider-group">
+          <input type="range" id="taskUrgency" min="1" max="5" value="3" />
+          <span class="slider-val" id="urgencyVal">3</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>重要度 (Importance)</label>
+        <div class="slider-group">
+          <input type="range" id="taskImportance" min="1" max="5" value="3" />
+          <span class="slider-val" id="importanceVal">3</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addTask()">分诊</button>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      <h3>📊 分诊结果</h3>
+      <div id="resultContent"></div>
+    </div>
+
+    <div class="preset-card">
+      <h3>📌 预设任务 (12 个实验用例)</h3>
+      <div class="preset-list" id="presetList"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="kanban-area" id="kanbanArea">
+      <div class="kanban-col coo" data-office="COO办">
+        <div class="col-header">COO办 <span class="count" id="countCOO">0</span></div>
+        <div class="col-body" id="boardCOO"></div>
+        <div class="col-footer">前期商务谈判</div>
+      </div>
+      <div class="kanban-col cto" data-office="CTO办">
+        <div class="col-header">CTO办 <span class="count" id="countCTO">0</span></div>
+        <div class="col-body" id="boardCTO"></div>
+        <div class="col-footer">验收交付 / 成本控制</div>
+      </div>
+      <div class="kanban-col secretariat" data-office="秘书处办">
+        <div class="col-header">秘书处办 <span class="count" id="countSec">0</span></div>
+        <div class="col-body" id="boardSec"></div>
+        <div class="col-footer">中间执行过程</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="override-modal" id="overrideModal">
+  <div class="modal-content">
+    <h3>🔄 人工修正分派</h3>
+    <div class="form-group">
+      <label>重新分派到</label>
+      <select id="overrideOffice">
+        <option value="COO办">COO办（前期商务谈判）</option>
+        <option value="CTO办">CTO办（验收交付/成本控制）</option>
+        <option value="秘书处办">秘书处办（中间执行过程）</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>修正原因</label>
+      <input type="text" id="overrideReason" placeholder="如：秘书长判断..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-sm btn-outline" onclick="closeOverride()">取消</button>
+      <button class="btn btn-sm btn-primary" onclick="confirmOverride()">确认修正</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const PRESETS = [
+  { id:'T01', title:'客户询问报价', type:'商务', urgency:4, importance:4 },
+  { id:'T02', title:'合同条款争议', type:'商务', urgency:5, importance:5 },
+  { id:'T03', title:'服务器宕机', type:'技术', urgency:5, importance:5 },
+  { id:'T04', title:'代码评审安排', type:'技术', urgency:3, importance:3 },
+  { id:'T05', title:'会议室预订', type:'行政', urgency:2, importance:2 },
+  { id:'T06', title:'招聘面试安排', type:'管理', urgency:3, importance:4 },
+  { id:'T07', title:'财务报表整理', type:'行政', urgency:4, importance:3 },
+  { id:'T08', title:'客户投诉处理', type:'商务', urgency:5, importance:4 },
+  { id:'T09', title:'新员工入职', type:'行政', urgency:3, importance:3 },
+  { id:'T10', title:'项目进度汇报', type:'管理', urgency:4, importance:4 },
+  { id:'T11', title:'供应商资质审核', type:'商务', urgency:3, importance:4 },
+  { id:'T12', title:'安全漏洞修复', type:'技术', urgency:5, importance:5 }
+];
+
+let tasks = [];
+let taskCounter = 13;
+let selectedTaskId = null;
+let overrideTargetId = null;
+
+// ===== CLASSIFICATION =====
+function classifyOffice(type, urgency, importance) {
+  if (type === '商务') return urgency >= 4 ? 'COO办' : 'COO办';
+  if (type === '技术') return 'CTO办';
+  if (type === '行政') return '秘书处办';
+  if (type === '管理') return importance >= 4 ? '秘书处办' : 'COO办';
+  return '秘书处办';
+}
+
+function classifyPriority(urgency, importance) {
+  if (urgency >= 4 && importance >= 4) return 'critical';
+  if (urgency >= 4 && importance < 4) return 'high';
+  if (urgency < 4 && importance >= 4) return 'medium';
+  return 'low';
+}
+
+function calcConfidence(type, urgency, importance) {
+  if (type === '技术') return 98;
+  if (type === '行政') return 97;
+  if (type === '商务') {
+    if (urgency === 4 || urgency === 5 || urgency === 3) return 96;
+    return 95;
+  }
+  if (type === '管理') {
+    if (importance >= 5) return 95;
+    if (importance === 4) return 80;
+    if (importance === 3) return 75;
+    return 90;
+  }
+  return 90;
+}
+
+function getExplanation(type, urgency, importance, office, priority) {
+  const lines = [];
+  const pMap = { critical:'重要且紧急', high:'紧急不重要', medium:'重要不紧急', low:'不重要不紧急' };
+  lines.push(`类型：${type} → 规则匹配`);
+  if (type === '商务') lines.push('商务类任务 → COO办（前期商务谈判）');
+  else if (type === '技术') lines.push('技术类任务 → CTO办（验收交付/成本控制）');
+  else if (type === '行政') lines.push('行政类任务 → 秘书处办（中间执行过程）');
+  else if (type === '管理') {
+    if (importance >= 4) lines.push(`管理类 + 重要度(${importance}) ≥ 4 → 秘书处办`);
+    else lines.push(`管理类 + 重要度(${importance}) < 4 → COO办`);
+  }
+  lines.push(`Eisenhower 优先级：${pMap[priority] || priority}`);
+  return lines.join(' → ');
+}
+
+// ===== DOM HELPERS =====
+function priorityLabel(p) {
+  return { critical:'紧急重要', high:'紧急', medium:'重要', low:'一般' }[p] || p;
+}
+
+function priorityColor(p) {
+  return { critical:'#ef4444', high:'#f97316', medium:'#eab308', low:'#9ca3af' }[p] || '#888';
+}
+
+function taskToCard(t) {
+  const pClass = 'priority-' + t.priority;
+  const statuses = ['pending','processing','done'];
+  const sLabels = { pending:'待办', processing:'处理中', done:'已完成' };
+  let statusHTML = statuses.map(s => {
+    let cls = 'status-btn';
+    if (s === t.status) cls += s === 'done' ? ' done-active' : ' active';
+    return `<span class="${cls}" data-task-id="${t.id}" data-status="${s}">${sLabels[s]}</span>`;
+  }).join('');
+
+  return `<div class="task-card ${pClass}" data-task-id="${t.id}" onclick="showResult('${t.id}')">
+    <div class="card-top">
+      <span class="card-title">${t.title}</span>
+      <span class="badge badge-type-${t.type}">${t.type}</span>
+    </div>
+    <div class="card-badges">
+      <span class="badge badge-priority-${t.priority}">${priorityLabel(t.priority)}</span>
+      <span class="badge badge-office-${t.assignedOffice === '秘书处办' ? '秘书处' : (t.assignedOffice === 'COO办' ? 'coo' : 'cto')}">${t.assignedOffice}</span>
+    </div>
+    <div class="card-meta">
+      <span>⚡${t.urgency}</span>
+      <span>⭐${t.importance}</span>
+      <span>${t.overridden ? '✏️已修正' : ''}</span>
+    </div>
+    <div class="status-toggle" onclick="event.stopPropagation()">${statusHTML}</div>
+    <div class="card-office-toggle" onclick="event.stopPropagation(); openOverride('${t.id}')">🔄 重新分派</div>
+  </div>`;
+}
+
+// ===== RENDER =====
+function renderAll() {
+  renderBoards();
+  renderStats();
+  if (selectedTaskId) {
+    const t = tasks.find(x => x.id === selectedTaskId);
+    if (t) showResult(t.id);
+    else { document.getElementById('resultCard').classList.remove('visible'); selectedTaskId = null; }
+  }
+}
+
+function renderBoards() {
+  const boards = { 'COO办': document.getElementById('boardCOO'), 'CTO办': document.getElementById('boardCTO'), '秘书处办': document.getElementById('boardSec') };
+  Object.keys(boards).forEach(k => boards[k].innerHTML = '');
+  tasks.forEach(t => {
+    const board = boards[t.assignedOffice];
+    if (board) board.insertAdjacentHTML('beforeend', taskToCard(t));
+  });
+  document.getElementById('countCOO').textContent = tasks.filter(t => t.assignedOffice === 'COO办').length;
+  document.getElementById('countCTO').textContent = tasks.filter(t => t.assignedOffice === 'CTO办').length;
+  document.getElementById('countSec').textContent = tasks.filter(t => t.assignedOffice === '秘书处办').length;
+}
+
+function renderStats() {
+  const coo = tasks.filter(t => t.assignedOffice === 'COO办').length;
+  const cto = tasks.filter(t => t.assignedOffice === 'CTO办').length;
+  const sec = tasks.filter(t => t.assignedOffice === '秘书处办').length;
+  const total = tasks.length;
+  const pending = tasks.filter(t => t.status === 'pending').length;
+  const avgTime = tasks.filter(t => t.status === 'done').length > 0
+    ? Math.round(Math.random() * 8 + 2) : '—';
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card"><span class="label">总任务</span><span class="value">${total}</span><span class="sub">待办 ${pending}</span></div>
+    <div class="stat-card coo"><span class="label">COO办 负载</span><span class="value">${coo}</span><span class="sub">${total ? Math.round(coo/total*100) : 0}%</span></div>
+    <div class="stat-card cto"><span class="label">CTO办 负载</span><span class="value">${cto}</span><span class="sub">${total ? Math.round(cto/total*100) : 0}%</span></div>
+    <div class="stat-card secretariat"><span class="label">秘书处办 负载</span><span class="value">${sec}</span><span class="sub">${total ? Math.round(sec/total*100) : 0}%</span></div>
+    <div class="stat-card"><span class="label">平均处理时间</span><span class="value">${avgTime}</span><span class="sub">${typeof avgTime === 'number' ? '小时 (模拟)' : ''}</span></div>
+  `;
+}
+
+function renderPresets() {
+  const container = document.getElementById('presetList');
+  container.innerHTML = PRESETS.map(p =>
+    `<span class="preset-tag" onclick="addPreset('${p.id}')"><span class="id">${p.id}</span> ${p.title}</span>`
+  ).join('');
+}
+
+// ===== ACTIONS =====
+function createTask(title, type, urgency, importance, id) {
+  const office = classifyOffice(type, urgency, importance);
+  const priority = classifyPriority(urgency, importance);
+  const conf = calcConfidence(type, urgency, importance);
+  return { id: id || ('T' + String(taskCounter++).padStart(2,'0')), title, type, urgency, importance, assignedOffice: office, priority, confidence: conf, status: 'pending', overridden: false, overrideReason: '' };
+}
+
+function addTask() {
+  const title = document.getElementById('taskDesc').value.trim();
+  if (!title) { alert('请输入任务描述'); return; }
+  const type = document.getElementById('taskType').value;
+  const urgency = parseInt(document.getElementById('taskUrgency').value);
+  const importance = parseInt(document.getElementById('taskImportance').value);
+  const t = createTask(title, type, urgency, importance);
+  tasks.push(t);
+  selectedTaskId = t.id;
+  document.getElementById('taskDesc').value = '';
+  renderAll();
+}
+
+function addPreset(id) {
+  const p = PRESETS.find(x => x.id === id);
+  if (!p) return;
+  const existing = tasks.find(t => t.id === id && !t.overridden);
+  if (existing) {
+    selectedTaskId = existing.id;
+    showResult(existing.id);
+    renderAll();
+    return;
+  }
+  const t = createTask(p.title, p.type, p.urgency, p.importance, p.id);
+  const dup = tasks.findIndex(x => x.id === p.id);
+  if (dup >= 0) tasks.splice(dup, 1);
+  tasks.push(t);
+  selectedTaskId = t.id;
+  renderAll();
+}
+
+function showResult(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  selectedTaskId = t.id;
+  const card = document.getElementById('resultCard');
+  card.classList.add('visible');
+  const pMap = { critical:'紧急重要', high:'紧急', low:'一般', medium:'重要' };
+  const pLabel = pMap[t.priority] || t.priority;
+  const pColor = priorityColor(t.priority);
+  const officeClass = t.assignedOffice === '秘书处办' ? '秘书处' : (t.assignedOffice === 'COO办' ? 'coo' : 'cto');
+  const dotsU = Array.from({length:5}, (_,i) => `<span class="dot ${i<t.urgency?'filled':''}"></span>`).join('');
+  const dotsI = Array.from({length:5}, (_,i) => `<span class="dot ${i<t.importance?'filled orange':''}"></span>`).join('');
+  const confPct = t.overridden ? 100 : t.confidence;
+  const confColor = confPct >= 90 ? '#22c55e' : confPct >= 70 ? '#f59e0b' : '#ef4444';
+
+  document.getElementById('resultContent').innerHTML = `
+    <div class="result-task-name">${t.title}</div>
+    <div class="result-meta">
+      <span class="badge badge-type-${t.type}">${t.type}</span>
+      <span class="badge badge-priority-${t.priority}">${pLabel}</span>
+      <span class="badge badge-office-${officeClass}">${t.assignedOffice}</span>
+    </div>
+    <div class="visual-row"><span class="label">紧急度</span><div class="dots">${dotsU}</div><span style="font-size:12px;color:#888">${t.urgency}/5</span></div>
+    <div class="visual-row"><span class="label">重要度</span><div class="dots">${dotsI}</div><span style="font-size:12px;color:#888">${t.importance}/5</span></div>
+    <div style="margin-bottom:6px">
+      <span style="font-size:12px;color:#888">置信度 </span>
+      <span style="font-size:14px;font-weight:700;color:${confColor}">${confPct}%</span>
+      <div class="confidence-bar"><div class="fill" style="width:${confPct}%;background:${confColor}"></div></div>
+    </div>
+    <div class="explain-text">${getExplanation(t.type, t.urgency, t.importance, t.assignedOffice, t.priority)}${t.overridden ? '<br><strong>✏️ 已人工修正：</strong>' + t.overrideReason : ''}</div>
+    <div class="result-actions">
+      <button class="btn btn-sm btn-warning" onclick="openOverride('${t.id}')">🔄 人工修正</button>
+      <button class="btn btn-sm btn-outline" onclick="document.getElementById('resultCard').classList.remove('visible'); selectedTaskId=null;">关闭</button>
+    </div>
+  `;
+}
+
+function openOverride(id) {
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  overrideTargetId = id;
+  document.getElementById('overrideOffice').value = t.assignedOffice;
+  document.getElementById('overrideReason').value = '';
+  document.getElementById('overrideModal').classList.add('active');
+}
+
+function closeOverride() {
+  document.getElementById('overrideModal').classList.remove('active');
+  overrideTargetId = null;
+}
+
+function confirmOverride() {
+  if (!overrideTargetId) return;
+  const t = tasks.find(x => x.id === overrideTargetId);
+  if (!t) return;
+  const newOffice = document.getElementById('overrideOffice').value;
+  const reason = document.getElementById('overrideReason').value.trim() || '秘书长手动修正';
+  t.assignedOffice = newOffice;
+  t.overridden = true;
+  t.overrideReason = reason;
+  closeOverride();
+  renderAll();
+  if (selectedTaskId === overrideTargetId) showResult(overrideTargetId);
+}
+
+// ===== STATUS TOGGLE (Event Delegation) =====
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.status-btn');
+  if (!btn) return;
+  const id = btn.dataset.taskId;
+  const status = btn.dataset.status;
+  const t = tasks.find(x => x.id === id);
+  if (t) {
+    t.status = status;
+    renderAll();
+  }
+});
+
+// ===== SLIDER DISPLAY =====
+document.getElementById('taskUrgency').addEventListener('input', function() {
+  document.getElementById('urgencyVal').textContent = this.value;
+});
+document.getElementById('taskImportance').addEventListener('input', function() {
+  document.getElementById('importanceVal').textContent = this.value;
+});
+
+// ===== INIT =====
+renderPresets();
+renderAll();
+</script>
+</body>
+</html>

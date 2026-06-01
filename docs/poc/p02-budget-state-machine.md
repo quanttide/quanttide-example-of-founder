@@ -49,15 +49,6 @@ events:
 | 运营 | > 5 万 | COO + CTO | 会签 |
 | 项目 | ≤ 50 万 | CTO | 单人 |
 | 项目 | > 50 万 | 三办合议 | 会签 |
-events:
-  submit: draft -> pending_approval
-  approve: pending_approval -> approved
-  reject: pending_approval -> draft
-  adjust: approved -> pending_approval
-  execute: approved -> executing
-  overrun: executing -> alert
-  close: executing -> closing
-  archive: closing -> closed
 ```
 
 ### 审批角色矩阵（待定参数，PoC 阶段不做实现）

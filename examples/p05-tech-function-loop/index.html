@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoC 05 技术职能协作循环</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f6f8; color: #1a1a2e; min-height: 100vh; }
+.container { max-width: 1440px; margin: 0 auto; padding: 16px 24px; }
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+header h1 { font-size: 22px; font-weight: 700; color: #16213e; }
+header .subtitle { font-size: 13px; color: #666; background: #eef; padding: 4px 12px; border-radius: 12px; }
+.panels { display: flex; gap: 16px; margin-bottom: 16px; min-height: 520px; }
+.panel { border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+.panel-header { padding: 12px 16px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+.panel-body { padding: 14px 16px; flex: 1; overflow-y: auto; }
+.panel-left { flex: 0 0 35%; background: #fff; border: 1px solid #e2e8f0; }
+.panel-left .panel-header { background: #1a1a2e; color: #e2e8f0; }
+.panel-mid { flex: 0 0 35%; background: #fff; border: 1px solid #e2e8f0; }
+.panel-mid .panel-header { background: #0f3460; color: #fff; }
+.panel-right { flex: 1; background: #fff; border: 1px solid #e2e8f0; }
+.panel-right .panel-header { background: #533483; color: #fff; }
+
+/* Code block */
+.code-block { background: #1a1a2e; border-radius: 8px; padding: 14px; font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", Consolas, monospace; font-size: 13px; line-height: 1.65; color: #e2e8f0; overflow-x: auto; white-space: pre; tab-size: 2; }
+.code-block .hl-kw { color: #c792ea; }
+.code-block .hl-str { color: #c3e88d; }
+.code-block .hl-cm { color: #546e7a; font-style: italic; }
+.code-block .hl-fn { color: #82aaff; }
+.code-block .hl-pro { color: #ffcb6b; }
+.code-block .hl-num { color: #f78c6c; }
+.code-block .hl-op { color: #89ddff; }
+
+/* Trap badges */
+.trap-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; color: #fff; }
+.trap-badge.a { background: #e53935; }
+.trap-badge.b { background: #fb8c00; }
+.trap-badge.c { background: #1e88e5; }
+.trap-label { font-size: 12px; color: #555; margin-left: 4px; }
+.trap-list { margin-top: 10px; }
+.trap-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+.trap-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.trap-icon.a { background: #e53935; }
+.trap-icon.b { background: #fb8c00; }
+.trap-icon.c { background: #1e88e5; }
+
+/* Form sections */
+.trap-section { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+.trap-section h4 { font-size: 14px; margin-bottom: 6px; }
+.trap-section .radio-group { display: flex; flex-direction: column; gap: 4px; }
+.trap-section label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 3px 0; }
+.trap-section input[type="radio"] { cursor: pointer; }
+
+/* Stats */
+.stat-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+.stat-row:last-child { border-bottom: none; }
+.stat-label { color: #666; }
+.stat-value { font-weight: 700; color: #1a1a2e; }
+
+/* Decision path */
+.decision-path { margin: 10px 0; }
+.decision-node { display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin-bottom: 2px; border-radius: 6px; font-size: 13px; background: #f8f9fa; border-left: 3px solid #ccc; }
+.decision-node .trap-badge-s { font-size: 11px; font-weight: 700; }
+.decision-node .arrow { color: #999; margin: 0 4px; }
+.decision-node.connector { border-left-color: #999; justify-content: center; padding: 2px; background: transparent; font-size: 16px; color: #999; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.btn-primary { background: #0f3460; color: #fff; }
+.btn-primary:hover { background: #16213e; }
+.btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+.btn-success { background: #2e7d32; color: #fff; }
+.btn-success:hover { background: #1b5e20; }
+.btn-warning { background: #e65100; color: #fff; }
+.btn-warning:hover { background: #bf360c; }
+.btn-outline { background: transparent; border: 1.5px solid #0f3460; color: #0f3460; }
+.btn-outline:hover { background: #eef2f7; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.control-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px; }
+.control-bar .sep { color: #ddd; font-size: 18px; }
+
+/* Scenario cards */
+.scenarios { display: flex; gap: 12px; margin-bottom: 16px; }
+.scenario-card { flex: 1; padding: 12px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; transition: all .15s; }
+.scenario-card:hover { border-color: #0f3460; box-shadow: 0 2px 8px rgba(15,52,96,.08); }
+.scenario-card.active { border-color: #0f3460; background: #f0f4ff; }
+.scenario-card h5 { font-size: 14px; margin-bottom: 2px; }
+.scenario-card p { font-size: 12px; color: #666; }
+
+/* Ethical notice */
+.ethics-notice { padding: 10px 14px; background: #fffde7; border: 1px solid #f9e54c; border-radius: 8px; font-size: 12px; color: #664; line-height: 1.5; margin-bottom: 16px; }
+
+/* Table */
+.styled-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.styled-table th, .styled-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; }
+.styled-table th { font-weight: 600; color: #555; font-size: 12px; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; justify-content: center; align-items: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 12px; width: 90%; max-width: 540px; max-height: 80vh; overflow-y: auto; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.modal h3 { font-size: 18px; margin-bottom: 12px; }
+.modal .modal-close { float: right; padding: 4px 12px; border: none; background: #eee; border-radius: 4px; cursor: pointer; font-size: 14px; }
+.modal-section { margin-bottom: 12px; }
+.modal-section h4 { font-size: 14px; margin-bottom: 6px; color: #333; }
+
+/* Log */
+.log-area { background: #f8f9fa; border-radius: 6px; padding: 8px; font-size: 12px; font-family: monospace; max-height: 150px; overflow-y: auto; margin-top: 6px; white-space: pre-wrap; }
+.log-area:empty::before { content: "暂无记录"; color: #999; }
+
+/* Timer */
+.timer { font-variant-numeric: tabular-nums; font-family: monospace; font-size: 15px; font-weight: 700; color: #533483; }
+
+/* Misc */
+.text-muted { color: #888; font-size: 12px; }
+.mt-2 { margin-top: 8px; }
+.mb-2 { margin-bottom: 8px; }
+.flex { display: flex; }
+.gap-2 { gap: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>技术职能协作循环</h1>
+  <span class="subtitle">PoC 05</span>
+</header>
+
+<div class="panels">
+  <!-- Left: Tech Team View -->
+  <div class="panel panel-left">
+    <div class="panel-header">🔧 技术线 · 骨架代码</div>
+    <div class="panel-body">
+      <div style="font-size:12px;color:#999;margin-bottom:6px;">CommandHandler.transfer() — 预设 3 个陷阱</div>
+      <div class="code-block"><span class="hl-cm">// 命令处理器骨架 - 转派任务</span>
+<span class="hl-kw">class</span> <span class="hl-fn">CommandHandler</span> {
+  <span class="hl-cm">// [TODO] 实现转派逻辑</span>
+  <span class="hl-fn">transfer</span>(taskId, fromUserId, toUserId) {
+    <span class="hl-cm">// 坑 A：未处理 task 为 null/undefined 的情况</span>
+    <span class="hl-cm">// 坑 B：未处理 transfer 失败的回滚</span>
+    <span class="hl-cm">// 坑 C：未检查 fromUserId 是否有转出权限</span>
+
+    <span class="hl-kw">const</span> task = <span class="hl-pro">this</span>.<span class="hl-fn">getTask</span>(taskId);
+    <span class="hl-cm">// 限制：已开始执行的任务不可转派</span>
+    <span class="hl-kw">if</span> (task.status === <span class="hl-str">'executing'</span>) {
+      <span class="hl-kw">throw new</span> <span class="hl-fn">Error</span>(<span class="hl-str">'执行中的任务不可转派'</span>);
+    }
+
+    <span class="hl-pro">this</span>.<span class="hl-fn">assignTask</span>(taskId, toUserId);
+    <span class="hl-pro">this</span>.<span class="hl-fn">notifyUsers</span>(fromUserId, toUserId);
+    <span class="hl-pro">this</span>.<span class="hl-fn">logTransfer</span>(taskId, fromUserId, toUserId);
+    <span class="hl-kw">return</span> { success: <span class="hl-kw">true</span> };
+  }
+}</div>
+      <div class="trap-list">
+        <div class="trap-item"><span class="trap-icon a">A</span><span class="trap-badge a">边界条件</span><span class="trap-label">task 为空时未处理</span></div>
+        <div class="trap-item"><span class="trap-icon b">B</span><span class="trap-badge b">异常处理</span><span class="trap-label">无回滚机制</span></div>
+        <div class="trap-item"><span class="trap-icon c">C</span><span class="trap-badge c">权限检查</span><span class="trap-label">无鉴权</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Middle: Function Team View -->
+  <div class="panel panel-mid">
+    <div class="panel-header">📝 职能线 · 实现区域</div>
+    <div class="panel-body">
+      <div class="trap-section">
+        <h4><span class="trap-badge a" style="font-size:11px;">坑 A</span> 空状态处理</h4>
+        <div class="radio-group" id="trapA">
+          <label><input type="radio" name="trapA" value="主动"> 主动添加边界检查</label>
+          <label><input type="radio" name="trapA" value="提问后"> 提问后按指导添加</label>
+          <label><input type="radio" name="trapA" value="未发现"> 未发现</label>
+        </div>
+      </div>
+      <div class="trap-section">
+        <h4><span class="trap-badge b" style="font-size:11px;">坑 B</span> 异常回滚</h4>
+        <div class="radio-group" id="trapB">
+          <label><input type="radio" name="trapB" value="主动"> 添加 try-catch 回滚</label>
+          <label><input type="radio" name="trapB" value="提问后"> 按提示添加事务</label>
+          <label><input type="radio" name="trapB" value="未处理"> 未处理</label>
+        </div>
+      </div>
+      <div class="trap-section">
+        <h4><span class="trap-badge c" style="font-size:11px;">坑 C</span> 权限检查</h4>
+        <div class="radio-group" id="trapC">
+          <label><input type="radio" name="trapC" value="主动"> 自行添加鉴权逻辑</label>
+          <label><input type="radio" name="trapC" value="提问后"> 按设计实现权限</label>
+          <label><input type="radio" name="trapC" value="绕过"> 绕过鉴权</label>
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn btn-primary" id="btnSubmit" disabled>提交实现</button>
+        <span id="submitFeedback" class="text-muted" style="margin-left:8px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Observation Panel -->
+  <div class="panel panel-right">
+    <div class="panel-header">📊 观察面板</div>
+    <div class="panel-body">
+      <div style="margin-bottom:10px;">
+        <div class="stat-row"><span class="stat-label">参与者</span><span class="stat-value" id="participantName">李明</span></div>
+        <div class="stat-row"><span class="stat-label">骨架版本</span><span class="stat-value">v1.0</span></div>
+        <div class="stat-row"><span class="stat-label">已用时</span><span class="stat-value"><span class="timer" id="timerDisplay">00:00</span></span></div>
+      </div>
+      <div style="font-weight:600;font-size:13px;margin-bottom:4px;">决策路径</div>
+      <div class="decision-path" id="decisionPath">
+        <div class="decision-node" style="border-left-color:#999;color:#999;font-size:12px;">等待提交...</div>
+      </div>
+      <div style="font-weight:600;font-size:13px;margin:10px 0 4px;">团队统计（多轮）</div>
+      <table class="styled-table">
+        <tr><th>指标</th><th>值</th></tr>
+        <tr><td>坑位发现率</td><td><span id="statDiscovery">60</span>%</td></tr>
+        <tr><td>功能正确交付率</td><td><span id="statDelivery">75</span>%</td></tr>
+        <tr><td>平均首次交付时间</td><td><span id="statTime">25</span>min</td></tr>
+      </table>
+
+      <div style="font-weight:600;font-size:13px;margin:10px 0 4px;">会话日志</div>
+      <div class="log-area" id="logArea"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Control Bar -->
+<div class="control-bar">
+  <button class="btn btn-success" id="btnStart">▶ 开始实验</button>
+  <button class="btn btn-outline" id="btnSave">💾 保存记录</button>
+  <button class="btn btn-warning" id="btnReport">📄 生成报告</button>
+  <span class="sep">|</span>
+  <span class="text-muted">参与者：</span>
+  <select id="participantSelect" style="font-size:13px;padding:4px 6px;border-radius:4px;border:1px solid #ccc;">
+    <option>李明</option>
+    <option>王芳</option>
+    <option>张伟</option>
+    <option>刘洋</option>
+    <option>陈静</option>
+  </select>
+</div>
+
+<!-- Scenarios -->
+<div class="scenarios">
+  <div class="scenario-card" data-scenario="A">
+    <h5>场景 A: 新手上路</h5>
+    <p>低发现率预期 — 坑位发现约 30%</p>
+  </div>
+  <div class="scenario-card" data-scenario="B">
+    <h5>场景 B: 有经验开发者</h5>
+    <p>中等发现率预期 — 坑位发现约 60%</p>
+  </div>
+  <div class="scenario-card" data-scenario="C">
+    <h5>场景 C: 高级开发者</h5>
+    <p>高发现率预期 — 坑位发现约 90%</p>
+  </div>
+</div>
+
+<!-- Ethical Notice -->
+<div class="ethics-notice">
+  <strong>⚖ 伦理说明：</strong>本实验为模拟环境，参与者已被告知实验目的。评估结果仅用于流程改进，不用于个人绩效。
+</div>
+
+<!-- Report Modal -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal">
+    <button class="modal-close" id="closeModal">✕</button>
+    <h3>协作报告 #<span id="reportNum">1</span></h3>
+    <div class="modal-section">
+      <h4>参与者信息</h4>
+      <div class="stat-row"><span class="stat-label">姓名</span><span class="stat-value" id="reportName">—</span></div>
+      <div class="stat-row"><span class="stat-label">用时</span><span class="stat-value" id="reportTime">—</span></div>
+    </div>
+    <div class="modal-section">
+      <h4>决策记录</h4>
+      <div id="reportDecisions"></div>
+    </div>
+    <div class="modal-section">
+      <h4>处理评分</h4>
+      <div id="reportScore"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STATE = {
+  running: false,
+  seconds: 0,
+  timerInterval: null,
+  decisions: [],
+  logs: [],
+  submitCount: 0,
+  reportCount: 0,
+};
+
+const TRAP_NAMES = { A: '空状态处理', B: '异常回滚', C: '权限检查' };
+const TRAP_COLORS = { A: '#e53935', B: '#fb8c00', C: '#1e88e5' };
+
+function getSelection(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? el.value : null;
+}
+
+function getParticipant() {
+  return document.getElementById('participantSelect').value;
+}
+
+function updateSubmitButton() {
+  const a = getSelection('trapA');
+  const b = getSelection('trapB');
+  const c = getSelection('trapC');
+  document.getElementById('btnSubmit').disabled = !(a && b && c);
+}
+
+document.querySelectorAll('input[type="radio"]').forEach(r => {
+  r.addEventListener('change', updateSubmitButton);
+});
+
+function resetSelections() {
+  document.querySelectorAll('input[type="radio"]').forEach(r => { r.checked = false; });
+  updateSubmitButton();
+  document.getElementById('submitFeedback').textContent = '';
+  STATE.decisions = [];
+  renderDecisionPath();
+}
+
+function formatTime(s) {
+  const m = String(Math.floor(s / 60)).padStart(2, '0');
+  const sec = String(s % 60).padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+function updateTimer() {
+  document.getElementById('timerDisplay').textContent = formatTime(STATE.seconds);
+}
+
+function startTimer() {
+  if (STATE.running) return;
+  STATE.running = true;
+  STATE.seconds = 0;
+  updateTimer();
+  STATE.timerInterval = setInterval(() => {
+    STATE.seconds++;
+    updateTimer();
+  }, 1000);
+}
+
+function stopTimer() {
+  STATE.running = false;
+  if (STATE.timerInterval) {
+    clearInterval(STATE.timerInterval);
+    STATE.timerInterval = null;
+  }
+}
+
+function getDecisionLabel(trap, value) {
+  const color = TRAP_COLORS[trap];
+  return `<span class="trap-badge" style="background:${color};">坑 ${trap}</span> ${TRAP_NAMES[trap]} → ${value || '—'}`;
+}
+
+function renderDecisionPath() {
+  const el = document.getElementById('decisionPath');
+  if (STATE.decisions.length === 0) {
+    el.innerHTML = `<div class="decision-node" style="border-left-color:#999;color:#999;font-size:12px;">等待提交...</div>`;
+    return;
+  }
+  let html = '';
+  STATE.decisions.forEach((d, i) => {
+    const color = TRAP_COLORS[d.trap];
+    html += `<div class="decision-node" style="border-left-color:${color};">
+      <span class="trap-badge" style="background:${color};">坑 ${d.trap}</span>
+      <span>${TRAP_NAMES[d.trap]}</span>
+      <span class="arrow">→</span>
+      <span>${d.value}</span>
+    </div>`;
+    if (i < STATE.decisions.length - 1) {
+      html += `<div class="decision-node connector">↓</div>`;
+    }
+  });
+  el.innerHTML = html;
+}
+
+function addLog(msg) {
+  STATE.logs.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+  document.getElementById('logArea').textContent = STATE.logs.join('\n');
+}
+
+// Submit
+document.getElementById('btnSubmit').addEventListener('click', () => {
+  const traps = ['A', 'B', 'C'];
+  const selections = traps.map(t => ({ trap: t, value: getSelection(`trap${t}`) }));
+  STATE.decisions = selections;
+  STATE.submitCount++;
+  renderDecisionPath();
+  const elapsed = STATE.running ? STATE.seconds : 0;
+  addLog(`${getParticipant()} 提交实现 #${STATE.submitCount}（用时 ${formatTime(elapsed)}）`);
+  selections.forEach(s => addLog(`  ${TRAP_NAMES[s.trap]}: ${s.value}`));
+  document.getElementById('submitFeedback').textContent = `✅ 已提交 #${STATE.submitCount}`;
+});
+
+// Start experiment
+document.getElementById('btnStart').addEventListener('click', () => {
+  resetSelections();
+  stopTimer();
+  startTimer();
+  STATE.submitCount = 0;
+  STATE.decisions = [];
+  renderDecisionPath();
+  document.getElementById('submitFeedback').textContent = '';
+  addLog(`实验开始 — 参与者: ${getParticipant()}`);
+  document.getElementById('participantName').textContent = getParticipant();
+});
+
+// Participant change
+document.getElementById('participantSelect').addEventListener('change', () => {
+  document.getElementById('participantName').textContent = getParticipant();
+});
+
+// Save log
+document.getElementById('btnSave').addEventListener('click', () => {
+  if (STATE.decisions.length === 0) {
+    addLog('⚠ 暂无决策记录可保存');
+    return;
+  }
+  addLog(`💾 记录已保存（${STATE.submitCount} 次提交）`);
+  alert('记录已保存到会话日志');
+});
+
+// Report modal
+document.getElementById('btnReport').addEventListener('click', () => {
+  STATE.reportCount++;
+  document.getElementById('reportNum').textContent = STATE.reportCount;
+  document.getElementById('reportName').textContent = getParticipant();
+  document.getElementById('reportTime').textContent = formatTime(STATE.seconds);
+
+  const decisionsEl = document.getElementById('reportDecisions');
+  if (STATE.decisions.length === 0) {
+    decisionsEl.innerHTML = '<div class="text-muted">暂无决策记录</div>';
+  } else {
+    let html = '';
+    STATE.decisions.forEach(d => {
+      html += `<div class="stat-row"><span class="stat-label">${getDecisionLabel(d.trap, d.value)}</span></div>`;
+    });
+    decisionsEl.innerHTML = html;
+  }
+
+  // Score
+  const scoreMap = { '主动': 3, '提问后': 2, '未发现': 1, '未处理': 1, '绕过': 0 };
+  const scoreLabels = { '主动': '主动发现 ✅', '提问后': '被动发现 ⚠', '未发现': '未发现 ❌', '未处理': '未处理 ❌', '绕过': '绕过 ⛔' };
+  const scoreEl = document.getElementById('reportScore');
+  if (STATE.decisions.length === 0) {
+    scoreEl.innerHTML = '<div class="text-muted">—</div>';
+  } else {
+    let total = 0, html2 = '';
+    STATE.decisions.forEach(d => {
+      const pt = scoreMap[d.value] || 0;
+      total += pt;
+      html2 += `<div class="stat-row"><span class="stat-label">${getDecisionLabel(d.trap, d.value)}</span><span class="stat-value">${scoreLabels[d.value] || d.value} (${pt}分)</span></div>`;
+    });
+    html2 += `<div class="stat-row" style="border-top:2px solid #ddd;padding-top:6px;margin-top:4px;font-weight:700;"><span class="stat-label">总分</span><span class="stat-value">${total} / 9</span></div>`;
+    scoreEl.innerHTML = html2;
+  }
+
+  document.getElementById('reportModal').classList.add('open');
+});
+
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('reportModal').classList.remove('open');
+});
+document.getElementById('reportModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('reportModal').classList.remove('open');
+});
+
+// Scenario presets
+const SCENARIO_PRESETS = {
+  A: { trapA: '未发现', trapB: '未处理', trapC: '提问后' },
+  B: { trapA: '提问后', trapB: '提问后', trapC: '主动' },
+  C: { trapA: '主动', trapB: '主动', trapC: '主动' },
+};
+
+document.querySelectorAll('.scenario-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    const sc = card.dataset.scenario;
+    const preset = SCENARIO_PRESETS[sc];
+    if (preset) {
+      Object.entries(preset).forEach(([name, val]) => {
+        const el = document.querySelector(`input[name="${name}"][value="${val}"]`);
+        if (el) el.checked = true;
+      });
+      updateSubmitButton();
+      addLog(`📋 加载场景 ${sc}: ${card.querySelector('h5').textContent}`);
+    }
+  });
+});
+
+// Simulated stats fluctuation
+setInterval(() => {
+  const disc = 50 + Math.round(Math.random() * 30);
+  const deliv = 65 + Math.round(Math.random() * 25);
+  const t = 20 + Math.round(Math.random() * 15);
+  document.getElementById('statDiscovery').textContent = disc;
+  document.getElementById('statDelivery').textContent = deliv;
+  document.getElementById('statTime').textContent = t;
+}, 5000);
+
+// Init log
+addLog('🟢 系统就绪，选择场景或直接开始实验');
+</script>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>章程多维资产视图 - PoC 06</title>
+<style>
+  :root {
+    --asset: #b8860b;
+    --asset-bg: #fff8e7;
+    --asset-light: #f5e6c8;
+    --writing: #1e6bb8;
+    --writing-bg: #e8f0fe;
+    --writing-light: #c8daf5;
+    --knowledge: #2e8b57;
+    --knowledge-bg: #e6f4ea;
+    --knowledge-light: #c8e6d0;
+    --border: #d0d0d0;
+    --text: #222;
+    --text-muted: #666;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --radius: 6px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Noto Serif SC", "Source Han Serif SC", "SimSun", "Songti SC", serif; color: var(--text); background: #f5f5f0; height: 100vh; display: flex; flex-direction: column; }
+  .app-header { background: #fff; border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .app-header h1 { font-size: 18px; font-weight: 600; }
+  .app-header .subtitle { font-size: 13px; color: var(--text-muted); }
+  .app-main { display: flex; flex: 1; overflow: hidden; }
+  .left-panel { width: 30%; min-width: 280px; max-width: 360px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .right-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .doc-title-area { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  .doc-title-area h2 { font-size: 16px; font-weight: 600; line-height: 1.4; }
+  .doc-title-area .meta-line { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .perspective-tabs { display: flex; border-bottom: 2px solid var(--border); flex-shrink: 0; }
+  .perspective-tab { flex: 1; padding: 12px 8px; text-align: center; cursor: pointer; font-size: 13px; font-weight: 500; border: none; background: #fafafa; color: var(--text-muted); transition: all .15s; position: relative; font-family: inherit; }
+  .perspective-tab .tab-icon { display: block; font-size: 22px; margin-bottom: 2px; }
+  .perspective-tab:hover { background: #f0f0f0; }
+  .perspective-tab.active { background: #fff; color: var(--text); }
+  .perspective-tab.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; }
+  .perspective-tab[data-persp=asset].active::after { background: var(--asset); }
+  .perspective-tab[data-persp=writing].active::after { background: var(--writing); }
+  .perspective-tab[data-persp=knowledge].active::after { background: var(--knowledge); }
+  .meta-panel { flex: 1; overflow-y: auto; padding: 16px; }
+  .meta-group { margin-bottom: 16px; }
+  .meta-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .meta-group .value { font-size: 14px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: #fafafa; min-height: 32px; }
+  .meta-group input[type=text], .meta-group select { width: 100%; font-size: 14px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; background: #fff; }
+  .meta-group input:focus, .meta-group select:focus { outline: none; border-color: #888; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
+  .status-badge.draft { background: #f0f0f0; color: #666; }
+  .status-badge.active { background: #e6f4ea; color: #1b6b3a; }
+  .status-badge.archived { background: #fce8e6; color: #a50e0e; }
+  .status-badge.editing { background: #e8f0fe; color: #1e6bb8; }
+  .status-badge.reviewing { background: #fef7e0; color: #b06d0e; }
+  .status-badge.published { background: #e6f4ea; color: #1b6b3a; }
+  .status-badge.verified { background: #e6f4ea; color: #1b6b3a; }
+  .status-badge.unverified { background: #fce8e6; color: #a50e0e; }
+  .btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; cursor: pointer; font-size: 13px; font-family: inherit; transition: all .15s; }
+  .btn:hover { background: #f0f0f0; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-primary { background: var(--writing); color: #fff; border-color: var(--writing); }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-asset { background: var(--asset); color: #fff; border-color: var(--asset); }
+  .btn-asset:hover { filter: brightness(1.1); }
+  .btn-knowledge { background: var(--knowledge); color: #fff; border-color: var(--knowledge); }
+  .btn-knowledge:hover { filter: brightness(1.1); }
+  .btn-danger { background: #d32f2f; color: #fff; border-color: #d32f2f; }
+  .btn-danger:hover { filter: brightness(1.1); }
+  .btn-outline { background: transparent; }
+  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .action-bar .btn { flex: 1; text-align: center; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { display: inline-flex; align-items: center; gap: 4px; background: #eee; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+  .tag .tag-remove { cursor: pointer; font-weight: bold; color: #999; font-size: 14px; line-height: 1; }
+  .tag .tag-remove:hover { color: #d32f2f; }
+  .tag-input-row { display: flex; gap: 6px; margin-top: 6px; }
+  .tag-input-row input { flex: 1; font-size: 13px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; }
+
+  .content-area { flex: 1; overflow-y: auto; padding: 32px 48px; background: #fff; }
+  .charter-title { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 28px; letter-spacing: 2px; }
+  .charter-article { margin-bottom: 24px; }
+  .charter-article .article-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #333; }
+  .charter-article .article-body { font-size: 15px; line-height: 1.9; text-indent: 2em; color: #444; }
+  .charter-article .article-body .highlight { background: #fff3cd; padding: 1px 4px; border-radius: 2px; cursor: help; border-bottom: 2px solid transparent; }
+  .charter-article .article-body .highlight.asset-hl { border-bottom-color: var(--asset); }
+  .charter-article .article-body .highlight.writing-hl { border-bottom-color: var(--writing); }
+  .charter-article .article-body .highlight.knowledge-hl { border-bottom-color: var(--knowledge); }
+  .charter-article .article-body .highlight-badge { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px; vertical-align: middle; font-weight: 600; }
+
+  .notif-bar { border-top: 1px solid var(--border); background: #fafafa; padding: 12px 24px; max-height: 120px; overflow-y: auto; flex-shrink: 0; }
+  .notif-bar-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .notif-list { display: flex; flex-direction: column; gap: 4px; }
+  .notif-card { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #fff; border-radius: var(--radius); border-left: 3px solid var(--border); box-shadow: var(--card-shadow); font-size: 13px; animation: notif-in .2s ease-out; }
+  .notif-card .notif-icon { font-size: 16px; flex-shrink: 0; }
+  .notif-card .notif-text { flex: 1; }
+  .notif-card .notif-dismiss { cursor: pointer; color: #999; font-size: 16px; line-height: 1; flex-shrink: 0; padding: 2px; }
+  .notif-card .notif-dismiss:hover { color: #333; }
+  .notif-card.asset { border-left-color: var(--asset); }
+  .notif-card.writing { border-left-color: var(--writing); }
+  .notif-card.knowledge { border-left-color: var(--knowledge); }
+  @keyframes notif-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .concept-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .concept-item { display: inline-flex; align-items: center; gap: 4px; background: var(--knowledge-light); padding: 2px 8px; border-radius: 10px; font-size: 12px; color: #1b6b3a; }
+
+  .version-display { font-size: 24px; font-weight: 700; color: var(--writing); }
+
+  /* empty state */
+  .empty-hint { font-size: 12px; color: #aaa; font-style: italic; }
+
+  @media (max-width: 768px) {
+    .app-main { flex-direction: column; }
+    .left-panel { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--border); max-height: 300px; }
+    .content-area { padding: 20px; }
+  }
+
+  .meta-panel::-webkit-scrollbar, .content-area::-webkit-scrollbar, .notif-bar::-webkit-scrollbar { width: 4px; }
+  .meta-panel::-webkit-scrollbar-thumb, .content-area::-webkit-scrollbar-thumb, .notif-bar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>章程多维资产视图</h1>
+  <span class="subtitle">PoC 06 · 同一章程 · 三种视角</span>
+</div>
+
+<div class="app-main">
+  <!-- LEFT -->
+  <div class="left-panel">
+    <div class="doc-title-area">
+      <h2>量潮科技有限公司章程</h2>
+      <div class="meta-line">共 4 条 · 最后修订 2026-05-15</div>
+    </div>
+    <div class="perspective-tabs">
+      <button class="perspective-tab active" data-persp="asset" onclick="switchPerspective('asset')">
+        <span class="tab-icon">📦</span> 资产视图
+      </button>
+      <button class="perspective-tab" data-persp="writing" onclick="switchPerspective('writing')">
+        <span class="tab-icon">✏️</span> 写作视图
+      </button>
+      <button class="perspective-tab" data-persp="knowledge" onclick="switchPerspective('knowledge')">
+        <span class="tab-icon">🔗</span> 知识视图
+      </button>
+    </div>
+    <div class="meta-panel" id="metaPanel">
+      <!-- dynamically rendered -->
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="content-area" id="contentArea">
+      <div class="charter-title">量潮科技有限公司章程</div>
+      <div class="charter-article" id="art1">
+        <div class="article-title">第一条 公司名称</div>
+        <div class="article-body">本公司名称为"量潮科技有限公司"。</div>
+      </div>
+      <div class="charter-article" id="art2">
+        <div class="article-title">第二条 公司宗旨</div>
+        <div class="article-body" id="art2-body">本公司致力于为企业提供数字化转型咨询、培训课程和SaaS产品服务。</div>
+      </div>
+      <div class="charter-article" id="art3">
+        <div class="article-title">第三条 组织结构</div>
+        <div class="article-body">公司设COO办、CTO办、秘书处办三个办公室。</div>
+      </div>
+      <div class="charter-article" id="art4">
+        <div class="article-title">第四条 决策机制</div>
+        <div class="article-body">重大事项由三办合议决定，日常事务由各办自主决策。</div>
+      </div>
+    </div>
+    <div class="notif-bar" id="notifBar">
+      <div class="notif-bar-title">跨视角关联通知</div>
+      <div class="notif-list" id="notifList">
+        <!-- injected -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+const state = {
+  currentPerspective: 'asset',
+  asset: {
+    owner: '张三',
+    valueRating: 'A',
+    lifecycle: 'draft' // draft | active | archived
+  },
+  writing: {
+    author: '李四',
+    version: 1,
+    status: 'editing' // editing | reviewing | published
+  },
+  knowledge: {
+    tags: ['组织治理', '章程', '制度'],
+    concepts: ['公司治理结构', '三办制度'],
+    verified: false
+  }
+};
+
+let notifId = 0;
+const notifications = [];
+
+// ===================== PERSPECTIVE DEFINITIONS =====================
+const PERSP = {
+  asset: {
+    label: '资产视图',
+    color: '--asset',
+    btnClass: 'btn-asset',
+    renderMeta: function() {
+      const a = state.asset;
+      const lifecycleLabel = { draft: '草稿', active: '生效', archived: '归档' };
+      return `
+        <div class="meta-group">
+          <label>负责人</label>
+          <input type="text" id="assetOwner" value="${a.owner}" onchange="updateAssetMeta('owner', this.value)">
+        </div>
+        <div class="meta-group">
+          <label>价值评级</label>
+          <select id="assetRating" onchange="updateAssetMeta('valueRating', this.value)">
+            <option value="A" ${a.valueRating === 'A' ? 'selected' : ''}>A - 核心资产</option>
+            <option value="B" ${a.valueRating === 'B' ? 'selected' : ''}>B - 重要资产</option>
+            <option value="C" ${a.valueRating === 'C' ? 'selected' : ''}>C - 一般资产</option>
+          </select>
+        </div>
+        <div class="meta-group">
+          <label>生命周期状态</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="status-badge ${a.lifecycle === 'draft' ? 'draft' : a.lifecycle === 'active' ? 'active' : 'archived'}">${lifecycleLabel[a.lifecycle]}</span>
+            <button class="btn btn-sm" onclick="toggleLifecycle()">${a.lifecycle === 'archived' ? '激活' : a.lifecycle === 'active' ? '归档' : '生效'}</button>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn ${this.btnClass}" onclick="doAssetEval()">📊 资产评估</button>
+          <button class="btn btn-outline" onclick="doArchiveToggle()">${a.lifecycle === 'archived' ? '🔄 激活' : '📁 归档/激活'}</button>
+        </div>
+      `;
+    },
+    actions: {
+      initialNotifs: function() {
+        addNotif('asset', '📦', `资产视图已就绪 · 当前负责人: ${state.asset.owner}`);
+      }
+    }
+  },
+  writing: {
+    label: '写作视图',
+    color: '--writing',
+    btnClass: 'btn-primary',
+    renderMeta: function() {
+      const w = state.writing;
+      const statusLabel = { editing: '编辑中', reviewing: '审校中', published: '已发布' };
+      return `
+        <div class="meta-group">
+          <label>作者</label>
+          <input type="text" id="writingAuthor" value="${w.author}" onchange="updateWritingMeta('author', this.value)">
+        </div>
+        <div class="meta-group">
+          <label>修订版本</label>
+          <div class="version-display">v${w.version}</div>
+        </div>
+        <div class="meta-group">
+          <label>发布状态</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="status-badge ${w.status === 'editing' ? 'editing' : w.status === 'reviewing' ? 'reviewing' : 'published'}">${statusLabel[w.status]}</span>
+            ${w.status === 'editing' ? '<button class="btn btn-sm" onclick="toReview()">送审校</button>' : ''}
+            ${w.status === 'reviewing' ? '<button class="btn btn-sm btn-primary" onclick="toPublished()">通过发布</button><button class="btn btn-sm btn-danger" onclick="toEditing()">退回</button>' : ''}
+            ${w.status === 'published' ? '<button class="btn btn-sm" onclick="toEditing()">重新编辑</button>' : ''}
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn ${this.btnClass}" onclick="editContent()">✏️ 编辑</button>
+          <button class="btn btn-outline" onclick="incrementVersion()">🔢 递增版本</button>
+        </div>
+      `;
+    },
+    actions: {
+      initialNotifs: function() {
+        addNotif('writing', '✏️', `写作视图已就绪 · v${state.writing.version} · ${state.writing.author}`);
+      }
+    }
+  },
+  knowledge: {
+    label: '知识视图',
+    color: '--knowledge',
+    btnClass: 'btn-knowledge',
+    renderMeta: function() {
+      const k = state.knowledge;
+      const tagsHtml = k.tags.length ? k.tags.map(t => `<span class="tag"><span>${t}</span><span class="tag-remove" onclick="removeTag('${t}')">×</span></span>`).join('') : '<span class="empty-hint">暂无标签</span>';
+      const conceptsHtml = k.concepts.length ? k.concepts.map(c => `<span class="concept-item">${c}</span>`).join('') : '<span class="empty-hint">暂无关联概念</span>';
+      return `
+        <div class="meta-group">
+          <label>标签</label>
+          <div class="tags" id="tagContainer">${tagsHtml}</div>
+          <div class="tag-input-row">
+            <input type="text" id="tagInput" placeholder="输入标签名称..." onkeydown="if(event.key==='Enter')addTag()">
+            <button class="btn btn-sm ${this.btnClass}" onclick="addTag()">+ 添加</button>
+          </div>
+        </div>
+        <div class="meta-group">
+          <label>关联概念</label>
+          <div class="concept-list" id="conceptContainer">${conceptsHtml}</div>
+          <div class="tag-input-row">
+            <input type="text" id="conceptInput" placeholder="输入概念名称..." onkeydown="if(event.key==='Enter')addConcept()">
+            <button class="btn btn-sm ${this.btnClass}" onclick="addConcept()">+ 关联</button>
+          </div>
+        </div>
+        <div class="meta-group">
+          <label>验证状态</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="status-badge ${k.verified ? 'verified' : 'unverified'}">${k.verified ? '已验证' : '未验证'}</span>
+            <button class="btn btn-sm ${k.verified ? 'btn-outline' : this.btnClass}" onclick="toggleVerified()">${k.verified ? '取消验证' : '标记验证'}</button>
+          </div>
+        </div>
+        <div class="action-bar">
+          <button class="btn ${this.btnClass}" onclick="verifyAll()">✅ 全部验证</button>
+          <button class="btn btn-outline" onclick="openConceptMap()">🗺️ 概念图谱</button>
+        </div>
+      `;
+    },
+    actions: {
+      initialNotifs: function() {
+        addNotif('knowledge', '🔗', `知识视图已就绪 · ${state.knowledge.tags.length} 个标签 · ${state.knowledge.concepts.length} 个概念`);
+      }
+    }
+  }
+};
+
+// ===================== RENDER =====================
+function renderMeta() {
+  const panel = document.getElementById('metaPanel');
+  panel.innerHTML = PERSP[state.currentPerspective].renderMeta();
+}
+
+function switchPerspective(persp) {
+  state.currentPerspective = persp;
+  document.querySelectorAll('.perspective-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.persp === persp);
+  });
+  renderMeta();
+
+  // trigger initial notifs per perspective
+  if (persp === 'asset') {
+    PERSP.asset.actions.initialNotifs();
+  } else if (persp === 'writing') {
+    PERSP.writing.actions.initialNotifs();
+  } else if (persp === 'knowledge') {
+    PERSP.knowledge.actions.initialNotifs();
+  }
+}
+
+// ===================== ASSET =====================
+function updateAssetMeta(field, value) {
+  const prev = state.asset[field];
+  state.asset[field] = value;
+  if (field === 'lifecycle') {
+    if (value === 'active') addNotif('writing', '✏️', '资产状态变更为"生效" → 写作视图待发布');
+    if (value === 'archived') addNotif('knowledge', '🔗', '资产已归档 → 知识视图待验证');
+  }
+  if (field === 'valueRating') {
+    addNotif('asset', '📊', `价值评级更新为 ${value}，关联视图需关注`);
+  }
+  renderMeta();
+}
+
+function toggleLifecycle() {
+  const map = { draft: 'active', active: 'archived', archived: 'draft' };
+  const next = map[state.asset.lifecycle];
+  state.asset.lifecycle = next;
+  updateAssetMeta('lifecycle', next);
+}
+
+function doAssetEval() {
+  addNotif('asset', '📊', `资产评估完成 · 当前价值评级: ${state.asset.valueRating}`);
+  addNotif('writing', '✏️', '资产评估已执行，写作视图待审校调整');
+}
+
+function doArchiveToggle() {
+  toggleLifecycle();
+}
+
+// ===================== WRITING =====================
+function updateWritingMeta(field, value) {
+  state.writing[field] = value;
+  renderMeta();
+}
+
+function incrementVersion() {
+  state.writing.version++;
+  addNotif('writing', '✏️', `版本已递增至 v${state.writing.version}`);
+  addNotif('knowledge', '🔗', `写作视图版本更新至 v${state.writing.version} → 知识视图待验证`);
+  renderMeta();
+}
+
+function editContent() {
+  const body = document.getElementById('art2-body');
+  const currentText = body.textContent.replace('highlight', '').trim();
+  const newText = prompt('编辑第二条内容：', currentText);
+  if (newText && newText !== currentText) {
+    body.innerHTML = newText + ' <span class="highlight writing-hl">[已编辑]</span>';
+    incrementVersion();
+    addNotif('knowledge', '🔗', '写作视图内容已修改 → 知识视图待验证');
+    addNotif('asset', '📦', '写作视图内容变更，建议重新评估资产');
+  }
+}
+
+function toReview() {
+  state.writing.status = 'reviewing';
+  addNotif('writing', '✏️', '稿件已送审校');
+  addNotif('asset', '📦', '写作视图进入审校阶段');
+  renderMeta();
+}
+
+function toPublished() {
+  state.writing.status = 'published';
+  addNotif('writing', '✏️', '✅ 稿件已发布');
+  addNotif('knowledge', '🔗', '写作视图已发布 → 知识视图待验证');
+  renderMeta();
+}
+
+function toEditing() {
+  state.writing.status = 'editing';
+  addNotif('writing', '✏️', '稿件退回编辑');
+  renderMeta();
+}
+
+// ===================== KNOWLEDGE =====================
+function addTag() {
+  const input = document.getElementById('tagInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (state.knowledge.tags.includes(val)) { input.value = ''; return; }
+  state.knowledge.tags.push(val);
+  input.value = '';
+  addNotif('knowledge', '🔗', `已添加标签: ${val}`);
+  addNotif('writing', '✏️', `知识视图新增标签"${val}" → 写作视图参考更新`);
+  renderMeta();
+}
+
+function removeTag(tag) {
+  state.knowledge.tags = state.knowledge.tags.filter(t => t !== tag);
+  addNotif('knowledge', '🔗', `已移除标签: ${tag}`);
+  renderMeta();
+}
+
+function addConcept() {
+  const input = document.getElementById('conceptInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (state.knowledge.concepts.includes(val)) { input.value = ''; return; }
+  state.knowledge.concepts.push(val);
+  input.value = '';
+  addNotif('knowledge', '🔗', `已关联概念: ${val}`);
+  addNotif('writing', '✏️', `知识视图新增概念"${val}" → 写作视图参考更新`);
+  renderMeta();
+}
+
+function toggleVerified() {
+  state.knowledge.verified = !state.knowledge.verified;
+  addNotif('knowledge', '🔗', state.knowledge.verified ? '✅ 已验证' : '❌ 已取消验证');
+  if (state.knowledge.verified) {
+    addNotif('asset', '📦', '知识视图验证完成，资产评级可供参考');
+  }
+  renderMeta();
+}
+
+function verifyAll() {
+  state.knowledge.verified = true;
+  addNotif('knowledge', '🔗', '✅ 全部知识已验证');
+  addNotif('writing', '✏️', '知识视图已完成全部验证');
+  renderMeta();
+}
+
+function openConceptMap() {
+  addNotif('knowledge', '🗺️', `概念图谱: ${state.knowledge.concepts.join(' → ') || '暂无关联'}`);
+}
+
+// ===================== NOTIFICATIONS =====================
+function addNotif(type, icon, text) {
+  const id = ++notifId;
+  notifications.push({ id, type, icon, text });
+  renderNotifs();
+}
+
+function dismissNotif(id) {
+  const idx = notifications.findIndex(n => n.id === id);
+  if (idx > -1) notifications.splice(idx, 1);
+  renderNotifs();
+}
+
+function renderNotifs() {
+  const container = document.getElementById('notifList');
+  if (!notifications.length) {
+    container.innerHTML = '<div style="font-size:12px;color:#aaa;font-style:italic;">暂无通知</div>';
+    return;
+  }
+  container.innerHTML = notifications.map(n => `
+    <div class="notif-card ${n.type}">
+      <span class="notif-icon">${n.icon}</span>
+      <span class="notif-text">${n.text}</span>
+      <span class="notif-dismiss" onclick="dismissNotif(${n.id})">×</span>
+    </div>
+  `).join('');
+}
+
+// ===================== INIT =====================
+switchPerspective('asset');
+</script>
+</body>
+</html>

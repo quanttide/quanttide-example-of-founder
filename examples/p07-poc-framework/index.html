@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoC 概念验证探索框架</title>
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --primary-dark: #1d4ed8;
+  --primary-bg: #eff6ff;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", "Courier New", monospace;
+  --transition: 0.2s ease;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+.app-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.app-header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.app-header .badge {
+  font-size: 11px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 500;
+}
+.app-header .subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+.app-layout {
+  display: grid;
+  grid-template-columns: 35% 65%;
+  min-height: calc(100vh - 53px);
+}
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  overflow-y: auto;
+}
+.main-panel {
+  padding: 20px;
+  overflow-y: auto;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-title .count {
+  font-size: 11px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  padding: 0 6px;
+  border-radius: 99px;
+  font-weight: 500;
+  margin-left: auto;
+}
+.form-group { margin-bottom: 12px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+.form-group label .hint {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+textarea { resize: vertical; min-height: 60px; }
+select { cursor: pointer; }
+.mode-toggle {
+  display: flex;
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 3px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.mode-btn {
+  flex: 1;
+  padding: 7px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  font-family: var(--font);
+}
+.mode-btn.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow);
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all var(--transition);
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+.btn-success:hover { background: #16a34a; }
+.btn-block { width: 100%; }
+.ai-section { margin-bottom: 16px; }
+.ai-section .btn { width: 100%; }
+.ai-loading {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--primary-bg);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--primary);
+  margin-top: 8px;
+}
+.ai-loading.show { display: flex; }
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.eval-table { width: 100%; border-collapse: collapse; }
+.eval-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.eval-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.eval-table tr:last-child td { border-bottom: none; }
+.eval-table .dim-name { font-weight: 500; white-space: nowrap; }
+.slider-cell { display: flex; align-items: center; gap: 8px; }
+.slider-cell input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+}
+.slider-cell input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.slider-cell input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.slider-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 20px;
+  text-align: center;
+}
+.weight-input {
+  width: 56px !important;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px !important;
+  padding: 4px 6px !important;
+}
+.timeline { position: relative; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-item {
+  position: relative;
+  padding-left: 28px;
+  padding-bottom: 14px;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item .dot {
+  position: absolute;
+  left: 2px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  background: var(--surface);
+}
+.timeline-item .dot.adopt { border-color: var(--success); }
+.timeline-item .dot.adjust { border-color: var(--warning); }
+.timeline-item .dot.abandon { border-color: var(--danger); }
+.timeline-item .meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.timeline-item .meta .mode-tag {
+  font-size: 10px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  padding: 0 5px;
+  border-radius: 3px;
+}
+.timeline-item .hypothesis {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.timeline-item .plan {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.radio-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+.radio-group label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+.radio-group input[type="radio"] { accent-color: var(--primary); }
+.hidden-field { display: none; }
+.mode-full .hidden-field { display: block; }
+.form-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
+}
+.conclusion-placeholder {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.total-score {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  font-family: var(--font-mono);
+  text-align: center;
+  padding: 8px 0 4px;
+}
+.total-score-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+@media (max-width: 768px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .app-header .subtitle { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>概念验证探索框架</h1>
+  <span class="badge">PoC-07</span>
+  <span class="subtitle">假设验证工作台</span>
+</header>
+
+<div class="app-layout">
+  <!-- LEFT: Sidebar -->
+  <aside class="sidebar">
+    <!-- Mode Toggle -->
+    <div class="mode-toggle" id="modeToggle">
+      <button class="mode-btn active" data-mode="quick">快速版 (30min)</button>
+      <button class="mode-btn" data-mode="full">完整版 (2h)</button>
+    </div>
+
+    <!-- Hypothesis -->
+    <div class="card">
+      <div class="card-title">假设 <span style="font-size:12px;font-weight:400;color:var(--text-muted)">Hypothesis</span></div>
+      <div class="form-group">
+        <label for="hypothesis">核心假设</label>
+        <input type="text" id="hypothesis" placeholder="例：用户愿意为 AI 简历优化支付订阅费" />
+      </div>
+    </div>
+
+    <!-- Verification Plan -->
+    <div class="card" id="planCard">
+      <div class="card-title">验证方案 <span style="font-size:12px;font-weight:400;color:var(--text-muted)">Verification Plan</span></div>
+      <div class="form-group">
+        <label for="method">验证方法</label>
+        <select id="method">
+          <option value="experiment">实验 (Experiment)</option>
+          <option value="prototype">原型 (Prototype)</option>
+          <option value="research">调研 (Research)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="input">输入 <span class="hint">(所需资源 / 前置条件)</span></label>
+        <textarea id="input" rows="2" placeholder="例：设计稿、开发环境、目标用户清单"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="output">输出 <span class="hint">(预期交付物)</span></label>
+        <textarea id="output" rows="2" placeholder="例：用户访谈纪要、原型测试报告"></textarea>
+      </div>
+      <!-- Full mode extra fields -->
+      <div class="form-divider hidden-field"></div>
+      <div class="form-group hidden-field">
+        <label for="successCriteria">成功标准 <span class="hint">(可量化指标)</span></label>
+        <textarea id="successCriteria" rows="2" placeholder="例：≥60% 的测试用户愿意点击购买按钮"></textarea>
+      </div>
+      <div class="form-group hidden-field">
+        <label for="resources">资源需求</label>
+        <input type="text" id="resources" placeholder="例：2 名设计师、1 周开发时间" />
+      </div>
+      <div class="form-group hidden-field">
+        <label for="timeEstimate">时间预估</label>
+        <input type="text" id="timeEstimate" placeholder="例：5 个工作日" />
+      </div>
+    </div>
+
+    <!-- AI 辅助生成 -->
+    <div class="ai-section">
+      <button class="btn btn-primary btn-block" id="aiBtn">AI 辅助生成方案</button>
+      <div class="ai-loading" id="aiLoading">
+        <div class="spinner"></div>
+        <span>正在分析假设并生成验证方案...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Main -->
+  <main class="main-panel">
+    <!-- Evaluation Criteria -->
+    <div class="card">
+      <div class="card-title">评估标准 <span style="font-size:12px;font-weight:400;color:var(--text-muted)">Evaluation Criteria</span></div>
+      <table class="eval-table">
+        <thead>
+          <tr>
+            <th style="width:16%">维度</th>
+            <th style="width:44%">评分</th>
+            <th style="width:20%">权重</th>
+            <th style="width:20%">得分</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="dim-name">可行性</td>
+            <td>
+              <div class="slider-cell">
+                <input type="range" min="1" max="5" value="3" class="eval-slider" data-dim="feasibility" />
+                <span class="slider-value" id="feasibilityVal">3</span>
+              </div>
+            </td>
+            <td><input type="number" class="weight-input" value="25" min="0" max="100" data-dim="feasibility" /> %</td>
+            <td><span class="slider-value" id="feasibilityScore" style="font-size:13px;">0.75</span></td>
+          </tr>
+          <tr>
+            <td class="dim-name">成本</td>
+            <td>
+              <div class="slider-cell">
+                <input type="range" min="1" max="5" value="3" class="eval-slider" data-dim="cost" />
+                <span class="slider-value" id="costVal">3</span>
+              </div>
+            </td>
+            <td><input type="number" class="weight-input" value="25" min="0" max="100" data-dim="cost" /> %</td>
+            <td><span class="slider-value" id="costScore" style="font-size:13px;">0.75</span></td>
+          </tr>
+          <tr>
+            <td class="dim-name">风险</td>
+            <td>
+              <div class="slider-cell">
+                <input type="range" min="1" max="5" value="3" class="eval-slider" data-dim="risk" />
+                <span class="slider-value" id="riskVal">3</span>
+              </div>
+            </td>
+            <td><input type="number" class="weight-input" value="25" min="0" max="100" data-dim="risk" /> %</td>
+            <td><span class="slider-value" id="riskScore" style="font-size:13px;">0.75</span></td>
+          </tr>
+          <tr>
+            <td class="dim-name">收益</td>
+            <td>
+              <div class="slider-cell">
+                <input type="range" min="1" max="5" value="3" class="eval-slider" data-dim="benefit" />
+                <span class="slider-value" id="benefitVal">3</span>
+              </div>
+            </td>
+            <td><input type="number" class="weight-input" value="25" min="0" max="100" data-dim="benefit" /> %</td>
+            <td><span class="slider-value" id="benefitScore" style="font-size:13px;">0.75</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="total-score" id="totalScore">3.00</div>
+      <div class="total-score-label">综合评分 / 5</div>
+    </div>
+
+    <!-- Exploration Log -->
+    <div class="card">
+      <div class="card-title">
+        探索记录
+        <span class="count" id="logCount">0</span>
+      </div>
+      <div class="timeline" id="timeline">
+        <div class="empty-state">暂无探索记录。填写左侧表单后点击"添加记录"。</div>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" id="addLogBtn" disabled>+ 添加到探索记录</button>
+        <button class="btn btn-secondary btn-sm" id="clearLogBtn" style="float:right;">清空记录</button>
+      </div>
+    </div>
+
+    <!-- Conclusion -->
+    <div class="card" id="conclusionCard">
+      <div class="card-title">结论 <span style="font-size:12px;font-weight:400;color:var(--text-muted)">Conclusion</span></div>
+      <div id="conclusionContent">
+        <div class="radio-group">
+          <label><input type="radio" name="conclusion" value="adopt" /> 采纳</label>
+          <label><input type="radio" name="conclusion" value="adjust" /> 调整</label>
+          <label><input type="radio" name="conclusion" value="abandon" /> 放弃</label>
+        </div>
+        <div class="form-group">
+          <label for="conclusionReason">理由</label>
+          <textarea id="conclusionReason" rows="3" placeholder="说明得出结论的依据..."></textarea>
+        </div>
+      </div>
+      <div class="conclusion-placeholder" id="conclusionPlaceholder">
+        填写假设后，此处将显示结论选项
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function() {
+  // ---- State ----
+  const state = {
+    mode: 'quick',
+    logs: JSON.parse(sessionStorage.getItem('p07_logs') || '[]')
+  };
+
+  // ---- DOM refs ----
+  const modeBtns = document.querySelectorAll('.mode-btn');
+  const hypothesis = document.getElementById('hypothesis');
+  const planCard = document.getElementById('planCard');
+  const method = document.getElementById('method');
+  const inputEl = document.getElementById('input');
+  const outputEl = document.getElementById('output');
+  const successCriteria = document.getElementById('successCriteria');
+  const resources = document.getElementById('resources');
+  const timeEstimate = document.getElementById('timeEstimate');
+  const aiBtn = document.getElementById('aiBtn');
+  const aiLoading = document.getElementById('aiLoading');
+  const timeline = document.getElementById('timeline');
+  const logCount = document.getElementById('logCount');
+  const addLogBtn = document.getElementById('addLogBtn');
+  const clearLogBtn = document.getElementById('clearLogBtn');
+  const conclusionContent = document.getElementById('conclusionContent');
+  const conclusionPlaceholder = document.getElementById('conclusionPlaceholder');
+  const totalScoreEl = document.getElementById('totalScore');
+
+  const evalSliders = document.querySelectorAll('.eval-slider');
+  const weightInputs = document.querySelectorAll('.weight-input');
+  const dimMap = { feasibility: '可行性', cost: '成本', risk: '风险', benefit: '收益' };
+
+  // ---- Preset sample data ----
+  const PRESET_LOGS = [
+    {
+      time: '2026-05-28 14:30',
+      mode: 'quick',
+      hypothesis: '用户愿意为 AI 简历优化支付订阅费',
+      method: '调研',
+      conclusion: 'adjust',
+      reason: '初步访谈显示用户有需求但价格敏感度较高'
+    },
+    {
+      time: '2026-05-25 10:00',
+      mode: 'full',
+      hypothesis: '短视频带货在 3 线以下城市有增量空间',
+      method: '实验',
+      conclusion: 'adopt',
+      reason: 'AB 测试显示转化率提升 23%，ROI 正向'
+    },
+    {
+      time: '2026-05-20 16:45',
+      mode: 'quick',
+      hypothesis: '企业用户需要自助数据分析工具',
+      method: '原型',
+      conclusion: 'abandon',
+      reason: '原型测试反馈不佳，用户更偏好现有 Excel 工作流'
+    }
+  ];
+
+  // ---- Init ----
+  function init() {
+    if (state.logs.length === 0) {
+      state.logs = PRESET_LOGS;
+      saveLogs();
+    }
+    renderTimeline();
+    updateLogCount();
+    updateConclusionVisibility();
+    updateTotalScore();
+    addLogBtn.disabled = !hypothesis.value.trim();
+
+    // pre-fill sliders
+    evalSliders.forEach(s => updateSliderValue(s));
+    weightInputs.forEach(w => updateWeightScore(w));
+  }
+
+  function saveLogs() {
+    sessionStorage.setItem('p07_logs', JSON.stringify(state.logs));
+  }
+
+  // ---- Mode switching ----
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      modeBtns.forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      const mode = this.dataset.mode;
+      state.mode = mode;
+      planCard.classList.toggle('mode-full', mode === 'full');
+    });
+  });
+
+  // ---- AI generation ----
+  aiBtn.addEventListener('click', function() {
+    if (aiBtn.disabled) return;
+    aiBtn.disabled = true;
+    aiLoading.classList.add('show');
+
+    setTimeout(() => {
+      const h = hypothesis.value.trim() || '用户通过个性化推荐提升购买转化率';
+      hypothesis.value = h;
+      method.value = 'prototype';
+      inputEl.value = '目标用户画像、竞品分析报告、设计系统组件库';
+      outputEl.value = '可交互原型、用户测试报告、转化率对比数据';
+
+      if (state.mode === 'full') {
+        successCriteria.value = '测试用户转化率 ≥ 35%，NPS ≥ 40';
+        resources.value = '1 名设计师、1 名前端开发、3 天';
+        timeEstimate.value = '5 个工作日 (含测试周期)';
+      }
+
+      aiBtn.disabled = false;
+      aiLoading.classList.remove('show');
+      addLogBtn.disabled = false;
+      updateConclusionVisibility();
+    }, 2000);
+  });
+
+  // ---- Sliders ----
+  function updateSliderValue(el) {
+    const dim = el.dataset.dim;
+    const valEl = document.getElementById(dim + 'Val');
+    if (valEl) valEl.textContent = el.value;
+    updateWeightScore(el);
+    updateTotalScore();
+  }
+
+  function updateWeightScore(contextEl) {
+    const dim = contextEl.dataset.dim;
+    const slider = document.querySelector(`.eval-slider[data-dim="${dim}"]`);
+    const weight = document.querySelector(`.weight-input[data-dim="${dim}"]`);
+    const scoreEl = document.getElementById(dim + 'Score');
+    if (!slider || !weight || !scoreEl) return;
+    const val = parseFloat(slider.value);
+    const w = parseFloat(weight.value) || 0;
+    const score = ((val / 5) * (w / 100)).toFixed(2);
+    scoreEl.textContent = score;
+  }
+
+  function updateTotalScore() {
+    let total = 0;
+    weightInputs.forEach(w => {
+      const dim = w.dataset.dim;
+      const slider = document.querySelector(`.eval-slider[data-dim="${dim}"]`);
+      const val = parseFloat(slider?.value || 3);
+      const weight = parseFloat(w.value) || 0;
+      total += (val / 5) * (weight / 100);
+    });
+    totalScoreEl.textContent = (total * 5).toFixed(2);
+  }
+
+  evalSliders.forEach(el => {
+    el.addEventListener('input', function() {
+      updateSliderValue(this);
+    });
+  });
+
+  weightInputs.forEach(el => {
+    el.addEventListener('input', function() {
+      updateWeightScore(this);
+      updateTotalScore();
+    });
+  });
+
+  // ---- Hypothesis input ----
+  hypothesis.addEventListener('input', function() {
+    addLogBtn.disabled = !this.value.trim();
+    updateConclusionVisibility();
+  });
+
+  // ---- Conclusion visibility ----
+  function updateConclusionVisibility() {
+    const filled = hypothesis.value.trim().length > 0;
+    conclusionContent.style.display = filled ? 'block' : 'none';
+    conclusionPlaceholder.style.display = filled ? 'none' : 'block';
+  }
+
+  // ---- Timeline ----
+  function renderTimeline() {
+    if (state.logs.length === 0) {
+      timeline.innerHTML = '<div class="empty-state">暂无探索记录。填写左侧表单后点击"添加记录"。</div>';
+      return;
+    }
+
+    const labelMap = { adopt: '采纳', adjust: '调整', abandon: '放弃' };
+    const dotClassMap = { adopt: 'adopt', adjust: 'adjust', abandon: 'abandon' };
+    const methodMap = { experiment: '实验', prototype: '原型', research: '调研' };
+    const modeLabel = { quick: '快速版', full: '完整版' };
+
+    timeline.innerHTML = state.logs.slice().reverse().map(log => `
+      <div class="timeline-item">
+        <div class="dot ${dotClassMap[log.conclusion] || ''}"></div>
+        <div class="meta">
+          <span>${log.time}</span>
+          <span class="mode-tag">${modeLabel[log.mode] || log.mode}</span>
+          <span style="color:var(--text-muted)">${methodMap[log.method] || log.method}</span>
+        </div>
+        <div class="hypothesis">${escapeHtml(log.hypothesis)}</div>
+        <div class="plan">结论：${labelMap[log.conclusion] || log.conclusion}${log.reason ? ' — ' + escapeHtml(log.reason) : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+  }
+
+  function updateLogCount() {
+    logCount.textContent = state.logs.length;
+  }
+
+  // ---- Add log ----
+  addLogBtn.addEventListener('click', function() {
+    const h = hypothesis.value.trim();
+    if (!h) return;
+
+    const conclusionRadio = document.querySelector('input[name="conclusion"]:checked');
+    const conclusionVal = conclusionRadio ? conclusionRadio.value : '';
+
+    const now = new Date();
+    const timeStr = now.getFullYear() + '-' +
+      String(now.getMonth()+1).padStart(2,'0') + '-' +
+      String(now.getDate()).padStart(2,'0') + ' ' +
+      String(now.getHours()).padStart(2,'0') + ':' +
+      String(now.getMinutes()).padStart(2,'0');
+
+    state.logs.push({
+      time: timeStr,
+      mode: state.mode,
+      hypothesis: h,
+      method: method.options[method.selectedIndex].text.split(' ')[0],
+      conclusion: conclusionVal,
+      reason: document.getElementById('conclusionReason').value.trim()
+    });
+
+    saveLogs();
+    renderTimeline();
+    updateLogCount();
+  });
+
+  // ---- Clear log ----
+  clearLogBtn.addEventListener('click', function() {
+    if (state.logs.length === 0) return;
+    if (confirm('确定清空所有探索记录？')) {
+      state.logs = [];
+      saveLogs();
+      renderTimeline();
+      updateLogCount();
+    }
+  });
+
+  // ---- Init ----
+  init();
+})();
+</script>
+</body>
+</html>
