@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PoC 2: 空隙 gutter 标记</title>
+<title>PoC 2: 空隙标记</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#1a1b1e;--surface:#25262b;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent3:#ffd43b;--red:#ff6b6b}
@@ -15,13 +15,13 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
 #header .count{font-size:12px;color:var(--text-dim)}
 #header .count strong{color:var(--text)}
 #main{flex:1;display:flex;overflow:hidden}
-#gutter{width:24px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:relative;overflow:hidden}
-.gdot{position:absolute;left:50%;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:2;transition:transform .1s}
-.gdot:hover{transform:translate(-50%,-50%) scale(1.5);z-index:3}
-.gdot.s3{background:var(--accent)}
-.gdot.s2{background:var(--accent3)}
-.gdot.s1{background:var(--red)}
-.gline{position:absolute;left:50%;width:2px;transform:translateX(-50%);z-index:1;background:var(--border)}
+#gap-markers{width:24px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:relative;overflow:hidden}
+.gap-dot{position:absolute;left:50%;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:2;transition:transform .1s}
+.gap-dot:hover{transform:translate(-50%,-50%) scale(1.5);z-index:3}
+.gap-dot.s3{background:var(--accent)}
+.gap-dot.s2{background:var(--accent3)}
+.gap-dot.s1{background:var(--red)}
+.gap-line{position:absolute;left:50%;width:2px;transform:translateX(-50%);z-index:1;background:var(--border)}
 textarea{flex:1;padding:16px 20px;border:none;outline:none;font-size:15px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
 #tip{display:none;position:fixed;max-width:300px;padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;background:var(--surface);border:1px solid var(--border);z-index:100;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 #tip.show{display:block}
@@ -32,18 +32,18 @@ textarea{flex:1;padding:16px 20px;border:none;outline:none;font-size:15px;line-h
 <body>
 <div id="app">
   <div id="header">
-    <span class="logo">✎ 写作云 <small style="font-weight:400;color:var(--text-dim);font-size:11px">PoC: gutter 标记</small></span>
+    <span class="logo">✎ 写作云 <small style="font-weight:400;color:var(--text-dim);font-size:11px">PoC: 空隙标记</small></span>
     <span class="spacer"></span>
     <span class="count">空隙 <strong id="gapCount">0</strong></span>
   </div>
   <div id="main">
-    <div id="gutter"></div>
-    <textarea id="editor" placeholder="输入文本，点击下方按钮加载测试数据..." onscroll="syncGutter()" oninput="onEdit()"></textarea>
+    <div id="gap-markers"></div>
+    <textarea id="editor" placeholder="输入文本，点击下方按钮加载测试数据..." onscroll="syncGapMarkers()" oninput="onEdit()"></textarea>
     <div id="tip"></div>
   </div>
   <div id="status">
     <span>行号 <strong id="lineInfo">—</strong></span>
-    <span>点击 gutter 圆点跳转到对应行</span>
+    <span>点击空隙标记跳转到对应行</span>
   </div>
 </div>
 <script>
@@ -85,9 +85,9 @@ const LINE_H = 1.8 * 15; // line-height * font-size
 const PAD_TOP = 16;
 let gapData = {};
 
-function renderGutter(gaps) {
-  const g = document.getElementById('gutter');
-  g.innerHTML = '';
+function renderGapMarkers(gaps) {
+  const container = document.getElementById('gap-markers');
+  container.innerHTML = '';
   document.getElementById('gapCount').textContent = Object.keys(gaps).length;
   gapData = gaps;
 
@@ -95,7 +95,7 @@ function renderGutter(gaps) {
     const items = gaps[line];
     const best = Math.max(...items.map(i => i.score));
     const dot = document.createElement('div');
-    dot.className = 'gdot s' + best;
+    dot.className = 'gap-dot s' + best;
     dot.style.top = (PAD_TOP + (parseInt(line) - 1) * LINE_H + 4) + 'px';
     dot.dataset.line = line;
 
@@ -117,19 +117,17 @@ function renderGutter(gaps) {
       ta.setSelectionRange(pos, pos);
       ta.scrollTop = (parseInt(line) - 1) * LINE_H - 60;
     });
-    g.appendChild(dot);
+    container.appendChild(dot);
 
-    // 连接线
     const lineEl = document.createElement('div');
-    lineEl.className = 'gline';
+    lineEl.className = 'gap-line';
     lineEl.style.top = (PAD_TOP + (parseInt(line) - 1) * LINE_H) + 'px';
     lineEl.style.height = LINE_H + 'px';
-    g.appendChild(lineEl);
+    container.appendChild(lineEl);
   }
 }
 
-function syncGutter() {
-  // 空操作：PoC 用固定数据显示同步机制
+function syncGapMarkers() {
 }
 
 function onEdit() {
@@ -139,7 +137,7 @@ function onEdit() {
 function loadDemo() {
   document.getElementById('editor').value = GAP_TEXT;
   onEdit();
-  renderGutter(DEMO_GAPS);
+  renderGapMarkers(DEMO_GAPS);
 }
 
 document.addEventListener('DOMContentLoaded', loadDemo);
