@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>写作云 HTML PoC</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --panel-w: 200px; --situ-w: 300px;
+  --bg: #1a1b1e; --surface: #25262b; --surface2: #2c2e33;
+  --border: #373a40; --text: #c1c2c5; --text-dim: #909296;
+  --accent: #7c9bff; --accent2: #69db7c; --accent3: #ffd43b;
+  --red: #ff6b6b; --gutter: 4px;
+}
+body { font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+#app { display: grid; grid-template-rows: 40px 1fr 28px; height: 100vh; }
+
+/* ─── header ─── */
+#header { display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 13px; user-select: none; }
+#header .logo { font-weight: 700; color: var(--accent); letter-spacing: .5px; }
+#header .logo small { font-weight: 400; color: var(--text-dim); font-size: 11px; margin-left: 6px; }
+#header .spacer { flex: 1; }
+#header .phase-badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; background: var(--surface2); }
+#header .phase-badge.review { background: #2b3a5e; color: var(--accent); }
+#header .phase-badge.reflect { background: #2b4a2e; color: var(--accent2); }
+#header .phase-badge.rewrite { background: #4a442b; color: var(--accent3); }
+#header .phase-badge .cycle { color: var(--text-dim); font-weight: 400; }
+#header button { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+#header button:hover { background: var(--border); }
+#header button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+#header button.primary:hover { opacity: .85; }
+
+/* ─── main area ─── */
+#main { display: grid; grid-template-columns: var(--panel-w) 1fr var(--situ-w); overflow: hidden; }
+#main > .panel { display: flex; flex-direction: column; overflow: hidden; }
+
+/* ─── resize handles ─── */
+.handle { width: var(--gutter); cursor: col-resize; background: var(--border); flex-shrink: 0; }
+.handle:hover { background: var(--accent); }
+
+/* ─── left panel ─── */
+#project-panel { background: var(--surface); }
+#project-panel .section { padding: 10px 12px; }
+#project-panel .section + .section { border-top: 1px solid var(--border); }
+#project-panel h3 { font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: .8px; margin-bottom: 8px; }
+#project-panel .file-list { list-style: none; }
+#project-panel .file-list li { padding: 4px 0; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+#project-panel .file-list li:hover { color: var(--accent); }
+#project-panel .file-list li.active { color: var(--accent); font-weight: 600; }
+#project-panel .sample-btn { margin-top: 8px; width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 4px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+#project-panel .sample-btn:hover { background: var(--border); }
+
+/* ─── editor ─── */
+#editor-panel { background: var(--bg); }
+#editor-panel .toolbar { display: flex; gap: 4px; padding: 6px 10px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+#editor-panel .toolbar button { background: none; border: none; color: var(--text-dim); padding: 2px 6px; cursor: pointer; font-size: 12px; border-radius: 3px; }
+#editor-panel .toolbar button:hover { background: var(--surface2); color: var(--text); }
+#editor-panel .toolbar button.active { color: var(--accent); background: var(--surface2); }
+#editor-panel .toolbar .spacer { flex: 1; }
+#editor-area { flex: 1; display: flex; overflow: hidden; }
+#editor-area textarea, #editor-area .preview { flex: 1; padding: 16px 20px; border: none; outline: none; font-size: 15px; line-height: 1.8; overflow-y: auto; }
+#editor-area textarea { background: var(--bg); color: var(--text); resize: none; font-family: inherit; }
+#editor-area textarea::placeholder { color: var(--text-dim); opacity: .4; }
+#editor-area .preview { background: var(--bg); color: var(--text); }
+#editor-area .preview h1, #editor-area .preview h2 { color: #fff; margin: 16px 0 8px; }
+#editor-area .preview h1 { font-size: 22px; }
+#editor-area .preview h2 { font-size: 18px; }
+#editor-area .preview p { margin: 8px 0; }
+#editor-area .preview blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text-dim); margin: 8px 0; }
+#editor-area .preview em { font-style: italic; color: var(--accent3); }
+#editor-area .preview strong { color: #fff; }
+
+/* ─── right panel ─── */
+#situation-panel { background: var(--surface); overflow-y: auto; }
+#situation-panel .section { padding: 12px; }
+#situation-panel .section + .section { border-top: 1px solid var(--border); }
+#situation-panel h3 { font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: .8px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+#situation-panel .situation-text { font-size: 13px; line-height: 1.7; color: var(--text); padding: 10px 12px; background: var(--surface2); border-radius: 6px; border-left: 3px solid var(--accent); margin-bottom: 8px; white-space: pre-wrap; }
+#situation-panel .gap-item { font-size: 12px; padding: 4px 0; display: flex; align-items: flex-start; gap: 6px; }
+#situation-panel .gap-item .dot { flex-shrink: 0; margin-top: 2px; }
+#situation-panel .gap-item .label { color: var(--text-dim); }
+#situation-panel .score-bar { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 0; }
+#situation-panel .score-bar .bar-wrap { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+#situation-panel .score-bar .bar-fill { height: 100%; border-radius: 3px; transition: width .3s; }
+#situation-panel .score-bar .bar-fill.good { background: var(--accent2); }
+#situation-panel .score-bar .bar-fill.ok { background: var(--accent3); }
+#situation-panel .score-bar .bar-fill.bad { background: var(--red); }
+#situation-panel .score-bar .score-val { color: var(--text-dim); min-width: 28px; text-align: right; }
+
+/* ─── 3R dashboard ─── */
+#dashboard { display: flex; flex-direction: column; gap: 6px; }
+#dashboard .dash-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
+#dashboard .dash-row .label { color: var(--text-dim); }
+#dashboard .dash-row .value { font-weight: 600; }
+#dashboard .phase-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+#dashboard .phase-grid .phase-item { text-align: center; padding: 6px 4px; border-radius: 4px; font-size: 11px; font-weight: 600; background: var(--surface2); color: var(--text-dim); cursor: pointer; }
+#dashboard .phase-grid .phase-item.active { background: var(--accent); color: #fff; }
+#dashboard .phase-grid .phase-item.done { background: var(--accent2); color: #fff; }
+
+/* ─── status bar ─── */
+#status-bar { display: flex; align-items: center; gap: 16px; padding: 0 16px; background: var(--surface); border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); user-select: none; }
+#status-bar .stat { display: flex; align-items: center; gap: 4px; }
+#status-bar .stat strong { color: var(--text); font-weight: 600; }
+#status-bar .spacer { flex: 1; }
+
+/* ─── scrollbar ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ─── empty state ─── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); font-size: 13px; gap: 8px; }
+.empty-state .icon { font-size: 32px; opacity: .3; }
+
+/* ─── responsive fallback ─── */
+@media (max-width: 900px) { #main { grid-template-columns: 160px 1fr 240px; } }
+@media (max-width: 700px) { #main { grid-template-columns: 1fr; } #project-panel, #situation-panel { display: none; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <span class="logo">✎ 写作云 <small>HTML PoC</small></span>
+    <span class="spacer"></span>
+    <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-dim)" title="声明式豁免：交替双视角不扣分">
+      <input type="checkbox" id="chkDualPov" onchange="updateDashboard()"> 双视角
+    </label>
+    <span class="phase-badge review" id="phaseBadge"><span id="phaseLabel">Review</span><span class="cycle" id="cycleLabel">—</span></span>
+    <button id="btnReview" class="primary" onclick="runReview()">▶ 评审</button>
+    <button id="btnReflect" onclick="runReflect()">▶ 反思</button>
+    <button id="btnNextCycle" onclick="nextCycle()" disabled style="opacity:.4">下一轮 ➜</button>
+  </div>
+  <div id="main">
+    <div id="project-panel" class="panel">
+      <div class="section">
+        <h3>📄 底稿</h3>
+        <ul class="file-list">
+          <li class="active"><span>✎</span> 当前文稿</li>
+        </ul>
+        <button class="sample-btn" onclick="loadSample()">加载测试底稿</button>
+      </div>
+      <div class="section">
+        <h3>🕐 3R 记录</h3>
+        <div id="historyLog" style="font-size:12px;color:var(--text-dim)">
+          <span style="opacity:.5">暂无记录</span>
+        </div>
+      </div>
+    </div>
+    <div class="handle" id="handleLeft"></div>
+    <div id="editor-panel" class="panel">
+      <div class="toolbar">
+        <button class="active" onclick="togglePreview(this)" id="btnEdit">✎ 编辑</button>
+        <button onclick="togglePreview(this)" id="btnPreview">👁 预览</button>
+        <span class="spacer"></span>
+        <button onclick="clearText()">🗑 清空</button>
+      </div>
+      <div id="editor-area">
+        <textarea id="editor" placeholder="在此输入文本..." oninput="onEdit()"></textarea>
+        <div class="preview" id="preview" style="display:none"></div>
+      </div>
+    </div>
+    <div class="handle" id="handleRight"></div>
+    <div id="situation-panel" class="panel">
+      <div class="section" id="situationSection">
+        <h3>🎯 创作情境</h3>
+        <div class="situation-text" id="situationText">输入文本后点击「评审」查看情境引导。</div>
+      </div>
+      <div class="section" id="reviewSection">
+        <h3>📋 评审报告</h3>
+        <div id="reviewContent">
+          <div class="empty-state"><div class="icon">📊</div><span>等待评审...</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <h3>🔄 3R 仪表盘</h3>
+        <div id="dashboard">
+          <div class="phase-grid" id="phaseGrid">
+            <div class="phase-item active" data-phase="review">Review</div>
+            <div class="phase-item" data-phase="reflect">Reflect</div>
+            <div class="phase-item" data-phase="rewrite">Rewrite</div>
+          </div>
+          <div class="dash-row"><span class="label">轮次</span><span class="value" id="dashCycle">1</span></div>
+          <div class="dash-row"><span class="label">周期时长</span><span class="value" id="dashDuration">—</span></div>
+          <div class="dash-row"><span class="label">风格评分</span><span class="value" id="dashScore">—</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="status-bar">
+    <span class="stat">字数 <strong id="statWords">0</strong></span>
+    <span class="stat">行数 <strong id="statLines">0</strong></span>
+    <span class="stat">空隙 <strong id="statGaps">0</strong></span>
+    <span class="spacer"></span>
+    <span class="stat" id="statSave">自动保存 ✓</span>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  写作云 3R 引擎 — HTML 版
+// ═══════════════════════════════════════════════════════════════
+
+// ─── state ──────────────────────────────────────────────────
+let state = {
+  text: '',
+  gaps: [],
+  styles: [],
+  scores: [],
+  cycle: 0,
+  phase: 'review',   // review | reflect | rewrite
+  score: null,
+  history: [],
+  phaseTimes: {},
+  phaseStart: null,
+};
+
+const SAMPLE = `# 咖啡厅重逢
+
+春天的一个工作日的下午，咖啡店外下着淅淅沥沥的小雨。
+
+他愣神看着窗外的雨水沿着屋檐滑落到地面上。
+
+这是一家坐落在小院子里的咖啡店，屋里只有零星的几张桌子。
+
+他又想起了她了。
+
+自从毕业以后，他们的交集渐渐地少了。偶尔，他能在朋友圈里看到她的好友晒和她的合影。
+
+她打开手机相册里那个常打开的星标相簿，又翻到了她的那张照片。
+
+那是他存了十年的照片。
+
+他把新得到的照片放到星标相簿里。
+
+他打开了手机日记本，随手写下几句话：
+
+> 她更成熟了，更好看了。
+> 更渴望她了。
+> 好想和她在一起。
+> 什么时候能再遇见她呢。
+> 从没有人知道过我喜欢她。我就这样孤独地遥望了她十年。
+> 如果上天赐予我重新遇见她的机会，我希望这次可以勇敢地告诉她，我的心意一直没变。
+
+哦不对。上次说漏嘴了一次。
+
+他删掉了"从没有人"，换成了"少有人"。
+
+他看着窗外时下时停的雨。透过去，他看到了十年前自己在雨中见过的她的背影。
+
+她拉着行李箱走出车站，抬头望了望头上忽晴忽阴的天空。
+
+耳机里放着周董的音乐：
+
+"雨纷纷，旧故里草木深。我听闻，你仍守着孤城。"
+
+她又看了看前两天闺蜜发给自己的消息：
+
+"我老公说，他又打听你的近况了。他这些年一直单着。"
+"你说他是不是一直喜欢你啊。"
+"正好你也要回去，要不要正式认识一下他。"
+"你说你顶着这么漂亮的一张脸搞暗恋也太可惜了吧。"
+
+是啊，太可惜了。
+
+这一次，让我鼓起勇气奔向你。
+
+想到这里，她的心咚咚咚地敲着她。她突然觉得有点胆怯。
+
+"他会不会喜欢我。"女主轻轻的问自己。
+
+想到这里，她的心里沉重地像吞了一个铅块。
+
+她没带雨伞，身上已经有点微微淋湿。
+
+"找个地方避避雨吧。"她心想。
+
+她看到前面有家咖啡厅，似乎是在院落里。
+
+"就这吧！"她快步地拉着行李箱走过去。
+
+透过窗户，她看到了一个熟悉的身影在屋内。
+
+她想要推门地手顿住了。真的是他，
+
+滑轮的声音摩擦着地面。她轻轻推开了咖啡店的门。
+
+听到门口的声响，他本能地转过头。
+
+看到眼前窈窕的身影，他愣住了。
+
+是梦吗？
+
+不是梦。
+
+他看了看她湿漉漉的头发，从书包里掏出刚在超市买的毛巾。
+
+看着她带电的大眼睛和微红的脸颊，他的渐渐失了神。
+
+他的喉咙发痒，舌头微微动了动。心跳加速，浑身燥热。
+
+不知不觉间，他的手已经伸了出去，轻轻地擦了擦她的头发。
+
+擦了两下，他回过神来。赶忙停下来，把毛巾递给她。
+
+她也不舍地回过神，慢慢伸手接过毛巾。
+
+手指不经意间碰到他修长的手指，她的心弦被狠狠地拨动了一下。
+
+她的手真好看啊。
+
+她低着头，拉着自己的头发，用毛巾擦了几遍。
+
+新拆封的毛巾还带着一些涩涩的味道。
+
+她不敢抬头，怕眼神暴露了内心的羞怯。
+
+她想把毛巾还给他。
+
+"你拿着吧，我等会再买一条。"他笑着摆了摆手，"你喝焦糖玛奇朵吗？"
+
+她点点头。
+
+"老板，再加一杯焦糖玛奇朵。"他对着柜台轻轻喊了一声，一边帮她把行李箱拉到了他的桌子旁。
+
+"你的咖啡。"店员小姐姐很快端了一杯新的焦糖玛奇朵过来。
+
+他看着她纤细的手端过咖啡杯，轻轻地抿了一小口。
+
+优雅地像一副画一样。
+
+"我最近很爱喝焦糖玛奇朵。"他尝试着打破尴尬，"这家咖啡店是我的摸鱼圣地，今天在这坐了一下午。"
+
+哎呀，我怎么突然不会说话了。她尴尬地想。
+
+窗外的雨停了又下，下了又停。
+
+咖啡机的轰鸣声时响时停。
+
+林远亭面前的焦糖玛奇朵还有一点凉透的残余。
+
+陆知微五分钟前刚拖着行李箱离开。
+
+林远亭低头看了看自己的手。二十分钟前，这双手第一次触碰了她。
+
+触感是湿漉又温热的。
+
+他忘不了，也不想忘。`;
+
+// ─── gap / style models ──────────────────────────────────
+class Gap {
+  constructor(type, line, text, detail, score) {
+    this.type = type; this.line = line; this.text = text; this.detail = detail; this.score = score;
+  }
+}
+class StyleCheck {
+  constructor(name, score, detail, suggestion) {
+    this.name = name; this.score = score; this.detail = detail; this.suggestion = suggestion;
+  }
+}
+
+// ─── review engine ───────────────────────────────────────
+const WEIGHTS = {
+  identityLabelPenalty: 20, emotionLabelPenalty: 15, parallelNarrativePenalty: 25,
+  flashbackBlockPenalty: 20, actionConversionMultiplier: 2, perspectiveShiftsPer100: 3, gapDensityMultiplier: 20,
+};
+const BODY_WORDS = [
+  '头发','指尖','手','脚','皮肤','呼吸','心跳','湿','涩','热','冷','疼',
+  '眼睑','睫毛','嘴唇','下颌','颈','锁骨','肩膀','脊背','胸口','腰','手腕',
+  '掌心','指节','膝','脚踝','脉搏','体温','汗','痒','麻','酸','胀','闷',
+  '哽咽','吞咽','喉咙','脸颊','眼眶','视线',
+];
+const ACTION_VERBS = [
+  '推开','走进','走出','坐下','站起','转身','拿起','放下','打开','关上',
+  '递','接','碰','触','擦','抹','伸','拉','走','站','坐','推','停','低',
+  '挡','抓','握','敲','放','抬','低','探','揽','搂','牵','拽','扶','撑',
+  '趴','蹲','跪','躺','靠','贴','退','躲','闪','侧','偏','仰','俯','闭',
+  '睁','眯','眨','盯','瞥','抿','舔','咬','吸','呼','叹','颤','抖','拎',
+  '挎','披','裹','卷','拧','掰','勾',
+];
+const TIME_JUMP_PATTERNS = [
+  /第二天(清晨|上午|中午|下午|晚上|深夜)?/, /过了一会儿/, /过了[一会儿很久一段时间]/,
+  /[那这]天(晚上|深夜)/, /[几好]个小时后/, /不久之后/, /次日/, /翌日/,
+  /一周(后|之后)/, /一个月(后|之后)/,
+];
+const NAMED_EMOTION_RE = /(感到|觉得)\s*.{0,10}(不安|焦虑|紧张|害怕|开心|难过|沉重|孤单|温暖|幸福|痛苦|矛盾|坚定|犹豫|惊喜|失落|满足|疲惫|煎熬|慌乱)/;
+const EMOTION_LABELS_RE = /(欣喜|悲伤|愤怒|尴尬|开心|难过|激动|焦虑|平静|紧张|兴奋|失望|沮丧|羞怯|沉重|胆怯|燥热)地/;
+const IDENTITY_LABELS_RE = /(作为|身为|以.{0,20}的身份).{0,20}(创业者|投资人|校友|老板|员工|父亲|母亲|儿子|女儿)/;
+const PERSPECTIVE_CHANGE_RE = /(他|她|我|你)(突然|终于|还是|又|也|就|已经)?\s*(感觉|觉得|想|认为|知道|明白|意识到|发现|看到|听到|心想|想起|忘不了)/;
+const TRANSITION_PATTERNS = [/(不知不觉|不知不|恍然|猛然|突然).{0,6}(间|地)/, /回过神来/, /过了一会(儿|)/];
+
+function runReviewEngine(text, dualPov) {
+  const lines = text.split('\n');
+  const gaps = [];
+  const styles = [];
+  const stats = { totalLines: lines.length, totalChars: text.length, sceneCount: 0, dialogLines: 0, actionLines: 0, emotionLabels: 0, identityLabels: 0, timeJumps: 0, stateEndings: 0, plotEndings: 0, perspectiveShifts: 0, wordCount: 0 };
+
+  // helpers
+  function prevNonblank(i) {
+    for (let j = i - 2; j >= Math.max(i - 10, 0); j--) {
+      if (lines[j] && lines[j].trim()) return lines[j];
+    }
+    return '';
+  }
+  function isActionLine(line) { return ACTION_VERBS.some(v => line.includes(v)); }
+  function hasAction(line) { return isActionLine(line) || /沉默|停顿|低头|抬头|深呼吸/.test(line); }
+
+  // gaps
+  for (let i = 0; i < lines.length; i++) {
+    const stripped = lines[i].trim();
+    if (!stripped) continue;
+    const lineNo = i + 1;
+
+    for (const pat of TIME_JUMP_PATTERNS) {
+      if (pat.test(stripped)) {
+        gaps.push(new Gap('时间跳跃', lineNo, stripped.slice(0, 50), `匹配: ${pat.source} — 这段时间未被写`, pat.source.includes('第二天') ? 2 : 3));
+        stats.timeJumps++;
+        break;
+      }
+    }
+
+    if (/["「『]/.test(stripped)) {
+      const prev = prevNonblank(i);
+      if (prev && /[」』"]/.test(prev) && !hasAction(stripped)) {
+        gaps.push(new Gap('对话间隙', lineNo, stripped.slice(0, 50), '对白之间缺少动作或心理描写', 2));
+      }
+    }
+
+    if (isActionLine(stripped)) {
+      const prev = prevNonblank(i);
+      if (prev && isActionLine(prev)) {
+        gaps.push(new Gap('动作间空隙', lineNo, stripped.slice(0, 50), '两个连续动作之间缺少过渡', 3));
+      }
+    }
+
+    for (const pat of TRANSITION_PATTERNS) {
+      if (pat.test(stripped)) {
+        gaps.push(new Gap('过渡压缩', lineNo, stripped.slice(0, 60), `「${pat.source}」暗示时间被压缩`, pat.source.includes('不知不觉') ? 2 : 3));
+        break;
+      }
+    }
+
+    const pm = stripped.match(PERSPECTIVE_CHANGE_RE);
+    if (pm) {
+      stats.perspectiveShifts++;
+      const prev = prevNonblank(i);
+      if (prev) {
+        const ppm = prev.match(PERSPECTIVE_CHANGE_RE);
+        if (ppm && ppm[1] !== pm[1]) {
+          gaps.push(new Gap('视角切换', lineNo, stripped.slice(0, 50), `从 ${ppm[1]} 到 ${pm[1]} 缺少重叠瞬间`, 3));
+        }
+      }
+    }
+  }
+
+  // styles
+  const totalWithContent = lines.filter(l => l.trim()).length;
+  const dialogLines = lines.filter(l => /["「『]/.test(l)).length;
+  const actionLines = lines.filter(l => isActionLine(l)).length;
+  stats.dialogLines = dialogLines;
+  stats.actionLines = actionLines;
+
+  const actionRatio = totalWithContent ? (actionLines / totalWithContent) * 100 : 0;
+  const dialogRatio = totalWithContent ? (dialogLines / totalWithContent) * 100 : 0;
+  styles.push(new StyleCheck('对话 → 动作', Math.min(100, Math.round(actionRatio * WEIGHTS.actionConversionMultiplier)), `对话${Math.round(dialogRatio)}% / 动作${Math.round(actionRatio)}%`, '用身体动作替代对话'));
+
+  const identityMatches = (text.match(IDENTITY_LABELS_RE) || []).length;
+  stats.identityLabels = identityMatches;
+  const bodyCount = BODY_WORDS.reduce((s, w) => s + (text.match(new RegExp(w, 'g')) || []).length, 0);
+  const identityScore = identityMatches > 0 ? Math.max(0, 100 - identityMatches * WEIGHTS.identityLabelPenalty) : 100;
+  styles.push(new StyleCheck('身份标签 → 身体感知', identityScore, `身份标签${identityMatches}处 / 身体词汇${bodyCount}处`, '通过物与身体的接触传递情绪'));
+
+  const emotionMatches = (text.match(EMOTION_LABELS_RE) || []).length;
+  const namedEmotions = (text.match(NAMED_EMOTION_RE) || []).length;
+  stats.emotionLabels = emotionMatches + namedEmotions;
+  const hiddenScore = Math.max(0, 100 - (emotionMatches + namedEmotions) * WEIGHTS.emotionLabelPenalty);
+  styles.push(new StyleCheck('命名情绪 → 隐藏情绪', hiddenScore, `情绪副词${emotionMatches}处 + 感到/觉得${namedEmotions}处`, '让读者自己命名情绪'));
+
+  const shiftCount = stats.perspectiveShifts;
+  const per100 = lines.length / 100;
+  const expected = Math.max(WEIGHTS.perspectiveShiftsPer100 * per100, 1);
+  const overage = shiftCount - expected;
+  const perspectiveScore = overage > 0 ? Math.max(0, 100 - (overage / expected) * 100) : 100;
+  if (!dualPov) styles.push(new StyleCheck('有限第三人称紧贴', Math.round(perspectiveScore), `视角切换点${shiftCount}处`, '每个场景锁定一个角色内部视角'));
+
+  const lastLines = lines.slice(-5).filter(l => l.trim());
+  const stateMarkers = ['突然','感觉','—','……','?','？','不','还没','还'];
+  const plotMarkers = ['加了','约定','安排','决定','知道','告诉'];
+  if (lastLines.some(l => stateMarkers.some(m => l.includes(m)))) stats.stateEndings++;
+  if (lastLines.some(l => plotMarkers.some(m => l.includes(m)))) stats.plotEndings++;
+  styles.push(new StyleCheck('状态句结尾', stats.stateEndings > stats.plotEndings ? 100 : 30, `状态句${stats.stateEndings}处 / 情节句${stats.plotEndings}处`, '停在最紧张的时刻'));
+
+  const parallelCount = lines.filter(l => l.includes('他') && l.includes('她') && /也|同样|各自/.test(l)).length;
+  const parallelScore = Math.max(0, 100 - parallelCount * WEIGHTS.parallelNarrativePenalty);
+  styles.push(new StyleCheck('对称叙事 → 交错叙事', parallelScore, `对称模式${parallelCount}处`, '从各写一段内心到交错叙事'));
+
+  const gapDensity = Math.min(100, gaps.length * WEIGHTS.gapDensityMultiplier);
+  styles.push(new StyleCheck('半秒钟发现密度', gapDensity, `空隙${gaps.length}处 / ${lines.length}行`, '发现两个动作之间的空隙'));
+
+  let flashbackBlocks = 0, inFlashback = false;
+  for (const l of lines) {
+    if (/^\s*[他她]还记得|回想|记忆|那时|曾经/.test(l)) {
+      if (!inFlashback) { flashbackBlocks++; inFlashback = true; }
+    } else { inFlashback = false; }
+  }
+  const flashbackScore = Math.max(0, 100 - flashbackBlocks * WEIGHTS.flashbackBlockPenalty);
+  styles.push(new StyleCheck('过去闪回 → 碎片插入', flashbackScore, `整段闪回块${flashbackBlocks}处`, '过去只用足以解释现在的长度'));
+
+  const avgScore = Math.round(styles.reduce((s, st) => s + st.score, 0) / styles.length);
+  return { gaps, styles, stats, avgScore };
+}
+
+// ─── situation guidance ──────────────────────────────────
+function generateSituations(gaps, lines) {
+  const situations = [];
+  for (const g of gaps) {
+    if (g.score < 2) continue;
+    const idx = g.line - 1;
+    const ctxBefore = idx >= 2 ? lines[idx - 2] : '';
+    const ctxAfter = idx < lines.length - 1 ? lines[idx + 1] : '';
+    switch (g.type) {
+      case '时间跳跃':
+        situations.push(`在 L${g.line} 附近，文本跳过了「${g.text.slice(0, 30)}」这段时间。\n${ctxBefore ? '前面：' + ctxBefore.slice(0, 30) + '...\n' : ''}房间里有什么声音？光线有变化吗？角色在这段时间里做了什么？即使只是坐着，也有一具身体在时间里。`);
+        break;
+      case '对话间隙':
+        situations.push(`L${g.line} 的对白之间有一段沉默未被写。\n${ctxBefore ? '上文：' + ctxBefore.slice(0, 30) + '\n' : ''}说话的人在开口前做了什么？吞咽了一下？看向了别处？沉默不是空白——它是角色正在处理情绪的物理时间。`);
+        break;
+      case '动作间空隙':
+        situations.push(`L${g.line} 的两个动作之间缺少过渡。\n${ctxBefore ? '前一个动作：' + ctxBefore.slice(0, 30) + '\n' : ''}第一个动作结束时，角色的手在哪？呼吸节奏是怎样的？半秒钟——够一个人改变主意，也够一个人下定决心。`);
+        break;
+      case '视角切换':
+        situations.push(`在 L${g.line} 附近发生了视角切换。\n${ctxBefore ? '切换前：' + ctxBefore.slice(0, 30) + '\n' : ''}切换前的最后一个瞬间——那个角色看到了什么？感受到了什么？视角切换不是剪辑，是接力。`);
+        break;
+      case '过渡压缩':
+        situations.push(`L${g.line} ${g.detail}。\n${ctxBefore ? '上文：' + ctxBefore.slice(0, 30) + '\n' : ''}这段"被压缩"的时间里发生了什么？把它展开，让读者体验每一秒。`);
+        break;
+    }
+  }
+  if (!situations.length) {
+    situations.push('这段文本里发生了什么？试着找到两个句子之间的空气——\n角色在说话前后做了什么？在动作之间有没有未被写的半秒钟？');
+  }
+  return situations;
+}
+
+// ─── render helper ──────────────────────────────────────
+function renderMarkdown(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^###### (.+)$/gm, '<h6>$1</h6>')
+    .replace(/^##### (.+)$/gm, '<h5>$1</h5>')
+    .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^> (.+)/gm, '<blockquote>$1</blockquote>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^\n/, '')
+    .replace(/\n/g, '<br>');
+}
+
+// ─── UI updates ─────────────────────────────────────────
+function updateStats(text) {
+  const lines = text ? text.split('\n') : [];
+  const charCount = text.length;
+  const lineCount = lines.length;
+  document.getElementById('statWords').textContent = charCount;
+  document.getElementById('statLines').textContent = lineCount;
+}
+
+function updateReviewUI(result) {
+  const cont = document.getElementById('reviewContent');
+  state.gaps = result.gaps;
+  state.styles = result.styles;
+  state.score = result.avgScore;
+
+  document.getElementById('statGaps').textContent = result.gaps.length;
+  document.getElementById('dashScore').textContent = result.avgScore + '/100';
+
+  let html = '';
+  // gaps
+  if (result.gaps.length) {
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:4px">空隙检测</div>';
+    const sorted = [...result.gaps].sort((a, b) => b.score - a.score);
+    for (const g of sorted.slice(0, 10)) {
+      const dot = g.score === 3 ? '🟢' : g.score === 2 ? '🟡' : '🔴';
+      html += `<div class="gap-item"><span class="dot">${dot}</span><span>L${g.line} <span class="label">${g.type}</span>: ${g.text.slice(0, 30)}</span></div>`;
+    }
+    if (sorted.length > 10) html += `<div style="font-size:11px;color:var(--text-dim);margin-top:2px">...还有 ${sorted.length - 10} 处</div>`;
+  }
+  // styles
+  html += '<div style="font-size:12px;font-weight:600;margin:8px 0 4px">风格检查</div>';
+  const sortedStyles = [...result.styles].sort((a, b) => a.score - b.score);
+  for (const s of sortedStyles) {
+    const cls = s.score >= 70 ? 'good' : s.score >= 40 ? 'ok' : 'bad';
+    html += `<div class="score-bar"><span style="min-width:100px">${s.name}</span><div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${s.score}%"></div></div><span class="score-val">${s.score}%</span></div>`;
+  }
+  html += `<div style="font-size:13px;font-weight:600;margin-top:8px">综合评分: ${result.avgScore}/100</div>`;
+
+  // weakest
+  if (sortedStyles.length) {
+    const w = sortedStyles[0];
+    html += `<div style="font-size:12px;color:var(--text-dim);margin-top:6px;padding:6px;background:var(--surface2);border-radius:4px">优先改进: ${w.name} (${w.score}%) — ${w.suggestion}</div>`;
+  }
+  cont.innerHTML = html;
+}
+
+function updateSituationUI(situations) {
+  const el = document.getElementById('situationText');
+  if (situations && situations.length) {
+    el.innerHTML = situations.slice(0, 3).map((s, i) => `<strong>#${i + 1}</strong>\n${s}`).join('\n\n——\n\n');
+  } else {
+    el.textContent = '暂无情境引导。';
+  }
+}
+
+function updateDashboard() {
+  document.getElementById('dashCycle').textContent = state.cycle;
+  document.querySelectorAll('.phase-grid .phase-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.phase === state.phase);
+  });
+  const badge = document.getElementById('phaseBadge');
+  badge.className = 'phase-badge ' + state.phase;
+  document.getElementById('phaseLabel').textContent = state.phase.charAt(0).toUpperCase() + state.phase.slice(1);
+  document.getElementById('cycleLabel').textContent = state.cycle ? `#${state.cycle}` : '—';
+}
+
+function updateHistory() {
+  const el = document.getElementById('historyLog');
+  if (!state.history.length) {
+    el.innerHTML = '<span style="opacity:.5">暂无记录</span>';
+    return;
+  }
+  el.innerHTML = state.history.map((h, i) =>
+    `<div>第${i + 1}轮 | ${h.score}/100 | ${h.gaps}空隙 | ${h.duration || '—'}</div>`
+  ).join('');
+}
+
+// ─── actions ────────────────────────────────────────────
+function runReview() {
+  const text = document.getElementById('editor').value;
+  if (!text.trim()) { alert('请先输入文本'); return; }
+  state.text = text;
+  state.phase = 'review';
+  if (!state.cycle) state.cycle = 1;
+  state.phaseStart = Date.now();
+
+  const dualPov = document.getElementById('chkDualPov').checked;
+  const result = runReviewEngine(text, dualPov);
+  updateReviewUI(result);
+  updateStats(text);
+
+  const situations = generateSituations(result.gaps, text.split('\n'));
+  updateSituationUI(situations);
+  updateDashboard();
+  localStorage.setItem('write_poc_text', text);
+  document.getElementById('statSave').textContent = '已保存 ✓';
+}
+
+function runReflect() {
+  if (!state.text) { alert('请先执行评审'); return; }
+  state.phase = 'reflect';
+  const text = state.text;
+  const dualPov = document.getElementById('chkDualPov').checked;
+  const result = state.score ? state : runReviewEngine(text, dualPov);
+  if (!state.score) {
+    state.gaps = result.gaps;
+    state.styles = result.styles;
+    state.score = result.avgScore;
+  }
+  const situations = generateSituations(state.gaps || [], text.split('\n'));
+  updateSituationUI(situations);
+  updateDashboard();
+  document.getElementById('btnNextCycle').disabled = false;
+  document.getElementById('btnNextCycle').style.opacity = '1';
+}
+
+function nextCycle() {
+  const text = document.getElementById('editor').value;
+  const dualPov = document.getElementById('chkDualPov').checked;
+  const result = runReviewEngine(text, dualPov);
+  state.cycle++;
+  state.phase = 'review';
+  state.score = result.avgScore;
+  state.gaps = result.gaps;
+  state.styles = result.styles;
+
+  const duration = state.phaseStart ? Math.round((Date.now() - state.phaseStart) / 1000) + 's' : '—';
+  state.history.push({ score: result.avgScore, gaps: result.gaps.length, duration });
+  state.phaseStart = Date.now();
+
+  updateReviewUI(result);
+  updateStats(text);
+  const situations = generateSituations(result.gaps, text.split('\n'));
+  updateSituationUI(situations);
+  updateDashboard();
+  updateHistory();
+  document.getElementById('btnNextCycle').disabled = true;
+  document.getElementById('btnNextCycle').style.opacity = '.4';
+  localStorage.setItem('write_poc_text', text);
+}
+
+function loadSample() {
+  document.getElementById('editor').value = SAMPLE;
+  onEdit();
+  runReview();
+}
+
+function clearText() {
+  if (!confirm('清空所有文本？')) return;
+  document.getElementById('editor').value = '';
+  onEdit();
+  state = { text: '', gaps: [], styles: [], scores: [], cycle: 0, phase: 'review', score: null, history: [], phaseTimes: {}, phaseStart: null };
+  document.getElementById('reviewContent').innerHTML = '<div class="empty-state"><div class="icon">📊</div><span>等待评审...</span></div>';
+  document.getElementById('situationText').textContent = '输入文本后点击「评审」查看情境引导。';
+  document.getElementById('statGaps').textContent = '0';
+  document.getElementById('dashScore').textContent = '—';
+  updateDashboard();
+  updateHistory();
+}
+
+function onEdit() {
+  const text = document.getElementById('editor').value;
+  updateStats(text);
+  // auto-save debounce
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(() => {
+    localStorage.setItem('write_poc_text', text);
+    document.getElementById('statSave').textContent = '自动保存 ✓';
+  }, 500);
+}
+
+function togglePreview(btn) {
+  const isEdit = btn.id === 'btnEdit';
+  document.getElementById('editor').style.display = isEdit ? 'block' : 'none';
+  document.getElementById('preview').style.display = isEdit ? 'none' : 'block';
+  document.getElementById('btnEdit').classList.toggle('active', isEdit);
+  document.getElementById('btnPreview').classList.toggle('active', !isEdit);
+  if (!isEdit) {
+    const text = document.getElementById('editor').value;
+    document.getElementById('preview').innerHTML = '<div class="markdown-body">' + renderMarkdown(text) + '</div>';
+  }
+}
+
+// ─── resize handles ─────────────────────────────────────
+function makeResizable(handleId, panelId, side, minPx) {
+  const handle = document.getElementById(handleId);
+  let startX, startSize;
+  handle.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    const panel = document.getElementById(panelId);
+    startSize = side === 'left' ? panel.offsetWidth : panel.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = ev => {
+      const delta = ev.clientX - startX;
+      const newSize = side === 'left' ? startSize + delta : startSize - delta;
+      if (newSize >= minPx) {
+        document.getElementById(panelId).style.width = newSize + 'px';
+      }
+    };
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
+makeResizable('handleLeft', 'project-panel', 'left', 120);
+makeResizable('handleRight', 'situation-panel', 'right', 200);
+
+// ─── init ────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('write_poc_text');
+  if (saved) {
+    document.getElementById('editor').value = saved;
+    onEdit();
+  }
+  updateDashboard();
+  updateHistory();
+});
+</script>
+</body>
+</html>
