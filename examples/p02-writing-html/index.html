@@ -42,45 +42,79 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
 .gap-dot.s2{background:var(--accent3)}
 .gap-dot.s1{background:var(--red)}
 #editor{flex:1;padding:14px 18px;border:none;outline:none;font-size:14px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
-/* ─── 右栏：3R 状态条 + Tab 切换 ─── */
+/* ─── 右栏 ─── */
 #right{width:300px;background:var(--surface);flex-shrink:0;overflow:hidden;display:flex;flex-direction:column}
-/* 3R 状态条（始终可见） */
-#r3-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;font-size:11px}
-#r3-bar .phase-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-#r3-bar .phase-badge.review{background:#2b3a5e;color:var(--accent)}
-#r3-bar .phase-badge.reflect{background:#2b4a2e;color:var(--accent2)}
-#r3-bar .phase-badge.rewrite{background:#4a442b;color:var(--accent3)}
+#r3-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;font-size:11px}
+#r3-bar .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+#r3-bar .badge.review{background:#2b3a5e;color:var(--accent)}
+#r3-bar .badge.reflect{background:#2b4a2e;color:var(--accent2)}
+#r3-bar .badge.rewrite{background:#4a442b;color:var(--accent3)}
 #r3-bar .stat{color:var(--text-dim)}
 #r3-bar .stat strong{color:var(--text);font-weight:600}
 #r3-bar .spacer{flex:1}
-/* Tab 头 */
+
+/* Tab 头：三阶段 */
 #tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border)}
 #tabs .tab{flex:1;text-align:center;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;user-select:none}
 #tabs .tab:hover{color:var(--text)}
 #tabs .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-/* Tab 面板 */
-#panels{flex:1;overflow-y:auto;position:relative}
-#panels .tab-panel{display:none;padding:12px;height:100%}
-#panels .tab-panel.active{display:block}
-/* 情境看板 */
-.situation-text{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);white-space:pre-wrap}
-/* 评审看板 */
-.gap-list{display:flex;flex-direction:column;gap:2px}
-.gap-item{font-size:12px;padding:4px 8px;display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}
-.gap-item:hover{background:var(--surface2)}
-.gap-item .type{color:var(--text-dim);min-width:56px}
-.gap-item .line{color:var(--text-dim);margin-left:auto;font-size:11px}
-.style-list{display:flex;flex-direction:column;gap:4px;margin-top:8px}
-.style-row{display:flex;align-items:center;gap:6px;font-size:12px}
-.style-row .label{min-width:80px;color:var(--text-dim)}
-.style-row .bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
-.style-row .bar .fill{height:100%;border-radius:3px;transition:width .2s}
-.style-row .bar .fill.good{background:var(--accent2)}
-.style-row .bar .fill.ok{background:var(--accent3)}
-.style-row .bar .fill.bad{background:var(--red)}
-.style-row .score{color:var(--text-dim);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
-#total-score{font-size:20px;font-weight:700;color:var(--accent);margin-top:8px;text-align:center}
-#total-score small{font-size:13px;font-weight:400;color:var(--text-dim)}
+
+/* Tab 面板通用 */
+#panels{flex:1;overflow-y:auto}
+#panels .panel{display:none;padding:12px}
+#panels .panel.active{display:block}
+
+/* Review 看板：空隙 + 风格 */
+.rv-gaps{display:flex;flex-direction:column;gap:2px}
+.rv-gap{font-size:12px;padding:4px 8px;display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}
+.rv-gap:hover{background:var(--surface2)}
+.rv-gap .t{color:var(--text-dim);min-width:56px}
+.rv-gap .l{color:var(--text-dim);margin-left:auto;font-size:11px}
+.rv-styles{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.rv-style{display:flex;align-items:center;gap:6px;font-size:12px}
+.rv-style .lb{min-width:80px;color:var(--text-dim)}
+.rv-style .bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.rv-style .bar .fill{height:100%;border-radius:3px;transition:width .2s}
+.rv-style .bar .fill.good{background:var(--accent2)}
+.rv-style .bar .fill.ok{background:var(--accent3)}
+.rv-style .bar .fill.bad{background:var(--red)}
+.rv-style .sc{color:var(--text-dim);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
+#rv-total{font-size:20px;font-weight:700;color:var(--accent);margin-top:8px;text-align:center}
+#rv-total small{font-size:13px;font-weight:400;color:var(--text-dim)}
+
+/* Reflect 看板：空隙引导 */
+.rf-guide{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent2);white-space:pre-wrap;margin-bottom:10px}
+.rf-btn{width:100%;padding:7px;border-radius:6px;border:1px solid var(--accent2);background:none;color:var(--accent2);font-size:12px;cursor:pointer;text-align:center}
+.rf-btn:hover{background:var(--surface2)}
+.rf-idx{font-size:11px;color:var(--text-dim);text-align:center;margin-top:6px}
+
+/* Rewrite 看板：变化 + 历史 */
+.rw-diff{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:10px}
+.rw-diff .old{font-size:16px;color:var(--text-dim)}
+.rw-diff .arr{color:var(--text-dim);font-size:14px}
+.rw-diff .new{font-size:22px;font-weight:700;color:var(--accent2)}
+.rw-diff .new small{font-size:13px;font-weight:400;color:var(--text-dim)}
+.rw-diff .delta{font-size:12px;font-weight:600}
+.rw-diff .delta.up{color:var(--accent2)}
+.rw-diff .delta.down{color:var(--red)}
+.rw-timeline{display:flex;flex-direction:column;gap:4px}
+.rw-tl-entry{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;font-size:12px}
+.rw-tl-entry .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.rw-tl-entry .dot.cur{background:var(--accent2)}
+.rw-tl-entry .dot.done{background:var(--text-dim);opacity:.4}
+.rw-tl-entry .rd{color:var(--text-dim);min-width:36px}
+.rw-tl-entry .ds{flex:1;color:var(--text)}
+.rw-tl-entry .sc{font-weight:600;color:var(--accent2)}
+.rw-items{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+.rw-item{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 0}
+.rw-item .i{flex-shrink:0}
+.rw-item .i.ok{color:var(--accent2)}
+.rw-item .i.pd{color:var(--accent3)}
+.rw-item .lb{flex:1;color:var(--text-dim)}
+.rw-item .st{font-size:11px;font-weight:600}
+.rw-item .st.ok{color:var(--accent2)}
+.rw-item .st.pd{color:var(--accent3)}
+#rw-section-title{margin-top:12px;font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:4px}
 /* status bar */
 #status{display:flex;align-items:center;gap:12px;padding:0 12px;height:26px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0}
 #status strong{color:var(--text)}#status .spacer{flex:1}
@@ -119,10 +153,10 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
         <textarea id="editor" placeholder="粘贴或输入文本..." oninput="onEdit()" spellcheck="false"></textarea>
       </div>
     </div>
-    <!-- 右栏：3R 状态条 + Tab 切换 -->
+    <!-- 右栏 -->
     <div id="right">
       <div id="r3-bar">
-        <span class="phase-badge review" id="phaseBadge">Review</span>
+        <span class="badge review" id="r3Badge">Review</span>
         <span class="stat">轮次 <strong id="r3Cycle">1</strong></span>
         <span class="stat">评分 <strong id="r3Score">—</strong></span>
         <span class="spacer"></span>
@@ -130,14 +164,27 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
       <div id="tabs">
         <div class="tab active" data-tab="review" onclick="switchTab('review')">📋 评审</div>
         <div class="tab" data-tab="reflect" onclick="switchTab('reflect')">🎯 情境</div>
+        <div class="tab" data-tab="rewrite" onclick="switchTab('rewrite')">✏️ 改写</div>
       </div>
       <div id="panels">
-        <div class="tab-panel active" id="panel-review">
-          <div id="reviewContent"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">等待评审...</div></div>
-          <div id="total-score">— <small>/100</small></div>
+        <div class="panel active" id="pn-review">
+          <div id="rv-content"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">等待评审...</div></div>
+          <div id="rv-total">— <small>/100</small></div>
         </div>
-        <div class="tab-panel" id="panel-reflect">
-          <div class="situation-text" id="situationText">点击「评审」查看情境引导。</div>
+        <div class="panel" id="pn-reflect">
+          <div class="rf-guide" id="rf-guide">点击「评审」查看情境引导。</div>
+          <button class="rf-btn" onclick="nextReflect()">下一条引导 →</button>
+          <div class="rf-idx" id="rf-idx">0 / 0</div>
+        </div>
+        <div class="panel" id="pn-rewrite">
+          <div class="rw-diff">
+            <span class="old" id="rw-old">—</span>
+            <span class="arr">→</span>
+            <span class="new" id="rw-new">— <small>/100</small></span>
+            <span class="delta" id="rw-delta"></span>
+          </div>
+          <div id="rw-section-title">📊 循环记录</div>
+          <div class="rw-timeline" id="rw-timeline"><span style="font-size:12px;color:var(--text-dim);opacity:.5">暂无记录</span></div>
         </div>
       </div>
     </div>
@@ -259,11 +306,14 @@ function genSits(gaps) {
 }
 
 // ═══════════════════════════
+// ═══════════════════════════
 //  UI
 // ═══════════════════════════
 
 const $ = id => document.getElementById(id);
 const LINE_H = 1.8 * 14, PAD = 14;
+let _rwHistory = [];
+let _rfIdx = 0, _rfGuides = [];
 
 function onEdit() {
   $('statWords').textContent = $('editor').value.length;
@@ -276,8 +326,7 @@ function updateGapMarkers(gaps) {
   if (!gaps.length) return;
   const bl = {};
   for (const g of gaps) {
-    if (!bl[g.line]) bl[g.line] = { line:g.line, best:g.score, items:[] };
-    bl[g.line].items.push(g);
+    if (!bl[g.line]) bl[g.line] = { line:g.line, best:g.score };
     if (g.score > bl[g.line].best) bl[g.line].best = g.score;
   }
   for (const k in bl) {
@@ -285,7 +334,7 @@ function updateGapMarkers(gaps) {
     const dot = document.createElement('div');
     dot.className = 'gap-dot s' + e.best;
     dot.style.top = (PAD + (e.line - 1) * LINE_H + 4) + 'px';
-    dot.title = e.items.map(i => `[${i.type}]`).join(' ');
+    dot.title = 'L' + e.line;
     dot.addEventListener('click', () => {
       const ta = $('editor');
       const lines = ta.value.split('\n');
@@ -299,7 +348,16 @@ function updateGapMarkers(gaps) {
 
 function switchTab(name) {
   document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  document.querySelectorAll('#panels .tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+  document.querySelectorAll('#panels .panel').forEach(p => p.classList.toggle('active', p.id === 'pn-' + name));
+  $('r3Badge').className = 'badge ' + name;
+  $('r3Badge').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function nextReflect() {
+  if (!_rfGuides.length) return;
+  _rfIdx = (_rfIdx + 1) % _rfGuides.length;
+  $('rf-guide').textContent = _rfGuides[_rfIdx];
+  $('rf-idx').textContent = (_rfIdx + 1) + ' / ' + _rfGuides.length;
 }
 
 function runReview() {
@@ -308,37 +366,56 @@ function runReview() {
   const r = analyze(text);
   $('statGaps').textContent = r.gaps.length;
   $('gapCount').textContent = r.gaps.length;
-  $('r3Cycle').textContent = document.getElementById('r3Cycle').textContent;
+  $('r3Cycle').textContent = _rwHistory.length + 1;
   $('r3Score').textContent = r.avgScore;
-  $('total-score').innerHTML = r.avgScore + ' <small>/100</small>';
   updateGapMarkers(r.gaps);
 
-  // 情境看板
-  const sits = genSits(r.gaps);
-  $('situationText').textContent = sits.length ? sits.join('\n\n——\n\n') : '当前未检测到引导。';
-
-  // 评审看板
+  // Review 看板
   let h = '';
   if (r.gaps.length) {
-    h += '<div class="gap-list">';
+    h += '<div class="rv-gaps">';
     const d = {3:'🟢',2:'🟡',1:'🔴'};
-    for (const g of r.gaps.slice(0, 10)) h += `<div class="gap-item"><span>${d[g.score]}</span><span class="type">${g.type}</span><span class="line">L${g.line}</span></div>`;
+    for (const g of r.gaps.slice(0, 10)) h += `<div class="rv-gap"><span>${d[g.score]}</span><span class="t">${g.type}</span><span class="l">L${g.line}</span></div>`;
     h += '</div>';
   }
   if (r.styles.length) {
-    h += '<div class="style-list">';
+    h += '<div class="rv-styles">';
     for (const s of r.styles) {
       const cls = s.score >= 70 ? 'good' : s.score >= 40 ? 'ok' : 'bad';
-      h += `<div class="style-row"><span class="label">${s.name}</span><div class="bar"><div class="fill ${cls}" style="width:${s.score}%"></div></div><span class="score">${s.score}</span></div>`;
+      h += `<div class="rv-style"><span class="lb">${s.name}</span><div class="bar"><div class="fill ${cls}" style="width:${s.score}%"></div></div><span class="sc">${s.score}</span></div>`;
     }
     h += '</div>';
   }
-  $('reviewContent').innerHTML = h || '<div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">无数据</div>';
+  $('rv-content').innerHTML = h || '<div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">无数据</div>';
+  $('rv-total').innerHTML = r.avgScore + ' <small>/100</small>';
+
+  // Reflect 看板
+  _rfGuides = genSits(r.gaps);
+  _rfIdx = 0;
+  $('rf-guide').textContent = _rfGuides.length ? _rfGuides[0] : '当前未检测到引导。';
+  $('rf-idx').textContent = _rfGuides.length ? '1 / ' + _rfGuides.length : '0 / 0';
+
+  // Rewrite 看板
+  const prev = _rwHistory.length ? _rwHistory[_rwHistory.length - 1].score : null;
+  _rwHistory.push({ score: r.avgScore, gaps: r.gaps.length });
+  $('rw-old').textContent = prev !== null ? prev : '—';
+  $('rw-new').innerHTML = r.avgScore + ' <small>/100</small>';
+  const delta = prev !== null ? r.avgScore - prev : 0;
+  const deltaEl = $('rw-delta');
+  deltaEl.textContent = delta > 0 ? '+' + delta : delta < 0 ? '' + delta : '';
+  deltaEl.className = 'delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
+
+  const tl = $('rw-timeline');
+  tl.innerHTML = _rwHistory.map((h, i) => {
+    const isLast = i === _rwHistory.length - 1;
+    return `<div class="rw-tl-entry"><span class="dot ${isLast ? 'cur' : 'done'}"></span><span class="rd">第${i+1}轮</span><span class="ds">${h.gaps} 空隙</span><span class="sc">${h.score}</span></div>`;
+  }).join('');
 }
 
 function loadSample() {
   $('editor').value = SAMPLE;
   onEdit();
+  _rwHistory = [];
   runReview();
 }
 
