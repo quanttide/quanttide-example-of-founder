@@ -6,111 +6,140 @@
 <title>PoC 1: 三栏布局</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#1a1b1e;--surface:#25262b;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff}
+:root{--bg:#1a1b1e;--surface:#25262b;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--panel-min:120px;--situ-min:180px}
 body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
-#app{display:grid;grid-template-rows:40px 1fr 28px;height:100vh}
-#header{display:flex;align-items:center;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);user-select:none;font-size:13px}
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* ─── header / status ─── */
+#header,#status{display:flex;align-items:center;padding:0 16px;background:var(--surface);flex-shrink:0;user-select:none;font-size:13px}
+#header{border-bottom:1px solid var(--border);height:40px}
 #header .logo{font-weight:700;color:var(--accent)}
+#header .logo small{font-weight:400;color:var(--text-dim);font-size:11px;margin-left:6px}
 #header .spacer{flex:1}
-#header .info{color:var(--text-dim);font-size:12px}
-#main{display:grid;grid-template-columns:200px 1fr 300px}
-.panel{overflow:hidden}
-#left{background:var(--surface);padding:12px;font-size:13px}
+#header .hint{font-size:12px;color:var(--text-dim)}
+#status{border-top:1px solid var(--border);height:28px;gap:16px;font-size:12px;color:var(--text-dim)}
+
+/* ─── 三栏：flex 实现，非 grid ─── */
+#main{flex:1;display:flex;overflow:hidden}
+
+.panel{overflow:hidden;display:flex;flex-direction:column}
+
+/* 左栏：固定宽度接受 resize */
+#left{width:200px;background:var(--surface);padding:12px;flex-shrink:0}
 #left h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:8px}
-#left .item{padding:4px 0;display:flex;align-items:center;gap:6px}
-#center{background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:15px}
-#right{background:var(--surface);padding:12px;font-size:13px}
+#left .file-item{padding:4px 0;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)}
+#left .file-item.dim{color:var(--text-dim)}
+#left hr{border:none;border-top:1px solid var(--border);margin:10px 0}
+
+/* 中栏：flex:1 占满剩余空间 */
+#center{flex:1;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:14px;flex-direction:column;gap:8px;position:relative}
+#center .short-line{height:2px;background:var(--border);border-radius:1px}
+#center .short-line.w60{width:60%}
+#center .short-line.w40{width:40%}
+#center .short-line.w80{width:80%}
+#center .placeholder-text{opacity:.5;margin-bottom:12px}
+
+/* 右栏：固定宽度接受 resize */
+#right{width:300px;background:var(--surface);padding:12px;flex-shrink:0}
 #right h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:8px}
-.handle{width:4px;cursor:col-resize;background:var(--border);flex-shrink:0;transition:background .15s}
+.card{background:#2c2e33;border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.card .row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
+.card .row .v{color:var(--text)}
+.card.bordered{border-left:3px solid var(--accent)}
+
+/* ─── 分隔条 ─── */
+.handle{width:4px;cursor:col-resize;background:var(--border);flex-shrink:0;transition:background .1s;position:relative;z-index:1}
 .handle:hover,.handle.active{background:var(--accent)}
-#status{display:flex;align-items:center;padding:0 16px;background:var(--surface);border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)}
-#status strong{color:var(--text);margin-left:4px}
-#status .spacer{flex:1}
-.demo-data{font-size:13px;padding:8px;background:var(--surface);border-radius:4px;margin-top:8px}
-.demo-data .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border)}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="header">
-    <span class="logo">✎ 写作云 <small style="font-weight:400;color:var(--text-dim);font-size:11px;margin-left:6px">PoC: 三栏布局</small></span>
+    <span class="logo">✎ 写作云 <small>PoC: 三栏布局</small></span>
     <span class="spacer"></span>
-    <span class="info">拖动手柄调整面板宽度</span>
+    <span class="hint" id="sizeHint">左 200px · 右 300px</span>
   </div>
   <div id="main">
     <div class="panel" id="left">
       <h3>📄 底稿</h3>
-      <div class="item">✎ 当前文稿</div>
-      <div class="item" style="color:var(--text-dim)">📁 归档</div>
-      <div class="item" style="color:var(--text-dim)">🕐 历史</div>
-      <div style="margin-top:12px;height:1px;background:var(--border)"></div>
-      <h3 style="margin-top:12px">🔄 3R 记录</h3>
-      <div class="demo-data">
-        <div class="row"><span>第1轮</span><span>—</span></div>
-        <div class="row"><span>第2轮</span><span>—</span></div>
+      <div class="file-item">✎ 当前文稿</div>
+      <div class="file-item dim">📁 归档</div>
+      <div class="file-item dim">🕐 历史</div>
+      <hr>
+      <h3>🔄 3R 记录</h3>
+      <div class="card">
+        <div class="row"><span>第1轮</span><span class="v">—</span></div>
+        <div class="row"><span>第2轮</span><span class="v">—</span></div>
       </div>
     </div>
-    <div class="handle" id="handleL"></div>
+    <div class="handle" id="handleL" title="拖动调整左栏宽度"></div>
     <div class="panel" id="center">
-      编辑器区域（自适应宽度，min 400px）
+      <div class="placeholder-text">编辑器区域 · 自适应宽度</div>
+      <div class="short-line w80"></div>
+      <div class="short-line w60"></div>
+      <div class="short-line w40"></div>
     </div>
-    <div class="handle" id="handleR"></div>
+    <div class="handle" id="handleR" title="拖动调整右栏宽度"></div>
     <div class="panel" id="right">
       <h3>🎯 创作情境</h3>
-      <div id="demoSitu" style="font-size:13px;padding:8px;background:#2c2e33;border-radius:4px;border-left:3px solid var(--accent);line-height:1.7">
-        在 L7 附近，文本跳过了「第二天清晨」这段时间。房间里有什么声音？光线有变化吗？
+      <div class="card bordered" style="font-size:13px;line-height:1.6">
+        在 L7 附近，文本跳过了「第二天清晨」这段时间。房间里有什么声音？
       </div>
-      <div style="margin-top:12px;height:1px;background:var(--border)"></div>
-      <h3 style="margin-top:12px">🔄 3R 仪表盘</h3>
-      <div class="demo-data">
-        <div class="row"><span>阶段</span><span style="color:var(--accent)">Review</span></div>
-        <div class="row"><span>轮次</span><span>1</span></div>
-        <div class="row"><span>评分</span><span style="color:var(--accent)">79/100</span></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+      <h3>🔄 3R 仪表盘</h3>
+      <div class="card">
+        <div class="row"><span>阶段</span><span class="v" style="color:var(--accent)">Review</span></div>
+        <div class="row"><span>轮次</span><span class="v">1</span></div>
+        <div class="row"><span>评分</span><span class="v" style="color:var(--accent)">79/100</span></div>
       </div>
     </div>
   </div>
   <div id="status">
-    <span>字数 <strong>0</strong></span>
-    <span style="margin-left:16px">空隙 <strong>0</strong></span>
-    <span class="spacer"></span>
-    <span>上个手柄调整相邻面板宽度</span>
+    <span>拖拽分隔条调整栏宽</span>
   </div>
 </div>
 <script>
-// 只做一件事：拖拽手柄调整面板宽度
-function initResize(handleId, leftId, rightId) {
-  const h = document.getElementById(handleId);
-  const left = document.getElementById(leftId);
-  const right = document.getElementById(rightId);
-  h.addEventListener('mousedown', e => {
+// 每个手柄只调整相邻的面板，中间栏用 flex:1 自动填充
+const MIN_W = { left: 120, right: 180 };
+const MAX_W = { left: 400, right: 500 };
+
+function initResize(handleId, targetId, side) {
+  const handle = document.getElementById(handleId);
+  const target = document.getElementById(targetId);
+
+  handle.addEventListener('mousedown', e => {
     e.preventDefault();
     const startX = e.clientX;
-    const startLW = left.offsetWidth;
-    const startRW = right.offsetWidth;
-    h.classList.add('active');
+    const startW = target.offsetWidth;
+    handle.classList.add('active');
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    const grid = document.getElementById('main');
+
     function move(ev) {
-      const dx = ev.clientX - startX;
-      const newLW = Math.max(100, Math.min(400, startLW + dx));
-      const newRW = Math.max(150, Math.min(500, startRW - dx));
-      left.style.width = newLW + 'px';
-      right.style.width = newRW + 'px';
+      const delta = ev.clientX - startX;
+      const newW = side === 'left'
+        ? Math.max(MIN_W.left, Math.min(MAX_W.left, startW + delta))
+        : Math.max(MIN_W.right, Math.min(MAX_W.right, startW - delta));
+      target.style.width = newW + 'px';
+      document.getElementById('sizeHint').textContent =
+        '左 ' + document.getElementById('left').offsetWidth + 'px · 右 ' + document.getElementById('right').offsetWidth + 'px';
     }
+
     function up() {
-      h.classList.remove('active');
+      handle.classList.remove('active');
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
     }
+
     document.addEventListener('mousemove', move);
     document.addEventListener('mouseup', up);
   });
 }
-initResize('handleL', 'left', 'right');
-initResize('handleR', 'right', 'left');
+
+initResize('handleL', 'left', 'left');
+initResize('handleR', 'right', 'right');
 </script>
 </body>
 </html>
