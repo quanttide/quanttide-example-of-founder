@@ -3,72 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PoC 5: 情境看板（Reflect）</title>
+<title>PoC 5: 改写看板（Rewrite）</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff}
+:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b;--red:#ff6b6b}
 body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 #card{width:360px;background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden}
 #bar{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--surface);border-bottom:1px solid var(--border);font-size:11px}
-#bar .phase{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#2b4a2e;color:#69db7c}
+#bar .phase{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#4a442b;color:var(--accent3)}
 #bar .spacer{flex:1}
-#bar .count{color:var(--text-dim)}
-#content{padding:16px}
-h2{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:8px}
-.situation-text{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);white-space:pre-wrap;margin-bottom:12px}
-.gap-ref{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.gap-ref .tag{padding:2px 8px;border-radius:4px;font-size:11px;background:var(--surface2);color:var(--text-dim);border-left:2px solid}
-.gap-ref .tag.s3{border-left-color:var(--accent)}
-.gap-ref .tag.s2{border-left-color:#ffd43b}
-.action{padding:8px 12px;border-radius:6px;border:1px solid var(--accent);background:none;color:var(--accent);font-size:12px;cursor:pointer;width:100%;text-align:center}
-.action:hover{background:var(--surface2)}
-#status{font-size:11px;color:var(--text-dim);text-align:center;margin-top:12px}
+#bar .cycle{color:var(--text-dim)}
+#content{padding:14px}
+h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px;margin-top:14px}
+h3:first-child{margin-top:0}
+
+/* 评分变化 */
+.score-change{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:4px}
+.score-change .old{font-size:16px;color:var(--text-dim)}
+.score-change .arrow{color:var(--text-dim);font-size:14px}
+.score-change .new{font-size:22px;font-weight:700;color:var(--accent2)}
+.score-change .new small{font-size:13px;font-weight:400;color:var(--text-dim)}
+.score-change .diff{font-size:12px;font-weight:600}
+.score-change .diff.up{color:var(--accent2)}
+.score-change .diff.down{color:var(--red)}
+
+/* 循环记录 */
+.timeline{display:flex;flex-direction:column;gap:6px}
+.timeline .entry{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface2);border-radius:6px;font-size:12px}
+.timeline .entry .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.timeline .entry .dot.active{background:var(--accent2)}
+.timeline .entry .dot.done{background:var(--text-dim);opacity:.4}
+.timeline .entry .round{color:var(--text-dim);min-width:36px}
+.timeline .entry .desc{flex:1;color:var(--text)}
+.timeline .entry .sc{font-weight:600;color:var(--accent2)}
+
+/* 改进项 */
+.improve-list{display:flex;flex-direction:column;gap:4px}
+.improve-list .item{display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 0}
+.improve-list .item .icon{flex-shrink:0}
+.improve-list .item .icon.done{color:var(--accent2)}
+.improve-list .item .icon.todo{color:var(--accent3)}
+.improve-list .item .label{flex:1;color:var(--text-dim)}
+.improve-list .item .status{font-size:11px;font-weight:600}
+.improve-list .item .status.done{color:var(--accent2)}
+.improve-list .item .status.todo{color:var(--accent3)}
+
+.btn-next{display:block;margin-top:12px;padding:8px;border-radius:6px;border:1px solid var(--accent3);background:none;color:var(--accent3);font-size:12px;cursor:pointer;width:100%;text-align:center}
+.btn-next:hover{background:var(--surface2)}
 </style>
 </head>
 <body>
 <div id="card">
   <div id="bar">
-    <span class="phase">Reflect</span>
+    <span class="phase">Rewrite</span>
     <span class="spacer"></span>
-    <span class="count">3 个空隙可引导</span>
+    <span class="cycle">第 3 轮</span>
   </div>
   <div id="content">
-    <h2>基于空隙的情境引导</h2>
-    <div class="gap-ref">
-      <span class="tag s3">🟢 动作空隙</span>
-      <span class="tag s3">🟢 时间跳跃</span>
-      <span class="tag s2">🟡 对话间隙</span>
+    <h3>本轮改写</h3>
+    <div class="score-change">
+      <span class="old">71</span>
+      <span class="arrow">→</span>
+      <span class="new">91 <small>/100</small></span>
+      <span class="diff up">+20</span>
     </div>
-    <div class="situation-text" id="guideText">点击下方按钮切换演示引导。</div>
-    <button class="action" onclick="nextGuide()">进入场景 →</button>
-    <div id="status">引导 1 / 3</div>
+
+    <h3>循环记录</h3>
+    <div class="timeline">
+      <div class="entry"><span class="dot done"></span><span class="round">第1轮</span><span class="desc">评审初稿</span><span class="sc">71</span></div>
+      <div class="entry"><span class="dot done"></span><span class="round">第2轮</span><span class="desc">填补 2 个空隙</span><span class="sc">79</span></div>
+      <div class="entry"><span class="dot active"></span><span class="round">第3轮</span><span class="desc">替换情绪标签</span><span class="sc">91</span></div>
+    </div>
+
+    <h3>改进项</h3>
+    <div class="improve-list">
+      <div class="item"><span class="icon done">✓</span><span class="label">填补动作空隙</span><span class="status done">已处理</span></div>
+      <div class="item"><span class="icon done">✓</span><span class="label">替换情绪副词</span><span class="status done">已处理</span></div>
+      <div class="item"><span class="icon todo">○</span><span class="label">对话 → 动作转化</span><span class="status todo">待处理</span></div>
+      <div class="item"><span class="icon todo">○</span><span class="label">过去闪回碎片化</span><span class="status todo">待处理</span></div>
+    </div>
+
+    <button class="btn-next" onclick="simulateNext()">完成本轮 → 进入下一轮</button>
   </div>
 </div>
 <script>
-const GUIDES = [
-  {
-    tag: '动作空隙',
-    text: 'L7 的两个动作之间缺少过渡。\n第一个动作结束时，角色的手在哪？呼吸节奏是怎样的？\n半秒钟——够一个人改变主意，也够一个人下定决心。',
-  },
-  {
-    tag: '时间跳跃',
-    text: '在 L3 附近跳过了"第二天清晨"这段时间。\n房间里有什么声音？光线有变化吗？\n角色即使只是坐着，也有一具身体在时间里。',
-  },
-  {
-    tag: '对话间隙',
-    text: 'L12 的对白之间有一段沉默未被写。\n说话的人在开口前做了什么？吞咽了一下？看向了别处？\n沉默不是空白——它是角色正在处理情绪的物理时间。',
-  },
-];
+let round = 3;
+function simulateNext() {
+  round++;
+  const scores = [71, 79, 91, 94, 97];
+  const s = scores[Math.min(round - 1, scores.length - 1)];
+  const prev = scores[Math.min(round - 2, scores.length - 1)];
 
-let idx = 0;
+  document.querySelector('.phase').textContent = 'Rewrite';
+  document.querySelector('.cycle').textContent = '第 ' + round + ' 轮';
+  document.querySelector('.score-change .old').textContent = prev;
+  document.querySelector('.score-change .new').innerHTML = s + ' <small>/100</small>';
+  document.querySelector('.score-change .diff').textContent = (s >= prev ? '+' : '') + (s - prev);
+  document.querySelector('.score-change .diff').className = 'diff ' + (s >= prev ? 'up' : 'down');
 
-function nextGuide() {
-  idx = (idx + 1) % GUIDES.length;
-  document.getElementById('guideText').textContent = GUIDES[idx].text;
-  document.getElementById('status').textContent = '引导 ' + (idx + 1) + ' / ' + GUIDES.length;
+  const timeline = document.querySelector('.timeline');
+  const entry = document.createElement('div');
+  entry.className = 'entry';
+  entry.innerHTML = `<span class="dot active"></span><span class="round">第${round}轮</span><span class="desc">继续优化</span><span class="sc">${s}</span>`;
+  timeline.querySelectorAll('.entry .dot').forEach(d => d.className = 'dot done');
+  timeline.appendChild(entry);
 }
-
-document.getElementById('guideText').textContent = GUIDES[0].text;
 </script>
 </body>
 </html>
