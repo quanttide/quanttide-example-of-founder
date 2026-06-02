@@ -3,59 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PoC 2: 空隙标记</title>
+<title>PoC 2: 空隙引导（Reflect）</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#1a1b1e;--surface:#25262b;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent3:#ffd43b;--red:#ff6b6b}
+:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b;--red:#ff6b6b}
 body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100vh}
-#header{display:flex;align-items:center;gap:8px;padding:0 12px;height:40px;background:var(--surface);border-bottom:1px solid var(--border);font-size:13px;user-select:none}
+#header{display:flex;align-items:center;gap:8px;padding:0 12px;height:40px;background:var(--surface);border-bottom:1px solid var(--border);font-size:13px;flex-shrink:0;user-select:none}
 #header .logo{font-weight:700;color:var(--accent)}
+#header .logo small{font-weight:400;color:var(--text-dim);font-size:11px;margin-left:6px}
 #header .spacer{flex:1}
-#header .count{font-size:12px;color:var(--text-dim)}
-#header .count strong{color:var(--text)}
+#header .hint{font-size:11px;color:var(--text-dim)}
 #main{flex:1;display:flex;overflow:hidden}
-#gap-markers{width:24px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:relative;overflow:hidden}
-.gap-dot{position:absolute;left:50%;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:2;transition:transform .1s}
-.gap-dot:hover{transform:translate(-50%,-50%) scale(1.5);z-index:3}
-.gap-dot.s3{background:var(--accent)}
-.gap-dot.s2{background:var(--accent3)}
-.gap-dot.s1{background:var(--red)}
-.gap-line{position:absolute;left:50%;width:2px;transform:translateX(-50%);z-index:1;background:var(--border)}
-textarea{flex:1;padding:16px 20px;border:none;outline:none;font-size:15px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
-#tip{display:none;position:fixed;max-width:300px;padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;background:var(--surface);border:1px solid var(--border);z-index:100;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4)}
-#tip.show{display:block}
-#tip .tt{font-weight:600;margin-bottom:2px}
-#status{display:flex;align-items:center;gap:16px;padding:0 16px;height:28px;background:var(--surface);border-top:1px solid var(--border);font-size:12px;color:var(--text-dim)}
+/* 空隙标记列 */
+#markers{width:20px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:relative;overflow:hidden}
+.dot{position:absolute;left:50%;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:2;transition:transform .1s}
+.dot:hover{transform:translate(-50%,-50%) scale(1.5);z-index:3}
+.dot.g3{background:var(--accent)}
+.dot.g2{background:var(--accent3)}
+.dot.g1{background:var(--red)}
+.dot.active{box-shadow:0 0 6px 2px var(--accent)}
+/* 编辑器 */
+#editor{flex:1;padding:14px 18px;border:none;outline:none;font-size:14px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
+/* 右栏：Reflect 面板 */
+#reflect{width:300px;background:var(--surface);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden}
+#reflect-bar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;flex-shrink:0}
+#reflect-bar .phase{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:#2b4a2e;color:var(--accent2)}
+#reflect-bar .spacer{flex:1}
+#reflect-bar .count{color:var(--text-dim)}
+#reflect-content{padding:12px;overflow-y:auto;flex:1}
+#reflect-content h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px}
+.gap-tag{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.gap-tag .t{padding:2px 8px;border-radius:4px;font-size:11px;background:var(--surface2);color:var(--text-dim);border-left:2px solid}
+.gap-tag .t.g3{border-left-color:var(--accent)}
+.gap-tag .t.g2{border-left-color:var(--accent3)}
+.guide{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);white-space:pre-wrap;margin-bottom:12px;transition:opacity .2s}
+.guide .highlight{color:var(--accent);font-weight:600}
+.scene-btn{width:100%;padding:8px;border-radius:6px;border:1px solid var(--accent);background:none;color:var(--accent);font-size:12px;cursor:pointer;text-align:center}
+.scene-btn:hover{background:var(--surface2)}
+#status{font-size:11px;color:var(--text-dim);text-align:center;margin-top:8px}
+/* 状态栏 */
+#footer{display:flex;align-items:center;gap:12px;padding:0 12px;height:26px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="header">
-    <span class="logo">✎ 写作云 <small style="font-weight:400;color:var(--text-dim);font-size:11px">PoC: 空隙标记</small></span>
+    <span class="logo">✎ 写作云 <small>Reflect — 空隙引导</small></span>
     <span class="spacer"></span>
-    <span class="count">空隙 <strong id="gapCount">0</strong></span>
+    <span class="hint">点击左侧空隙标记查看引导</span>
   </div>
   <div id="main">
-    <div id="gap-markers"></div>
-    <textarea id="editor" placeholder="输入文本，点击下方按钮加载测试数据..." onscroll="syncGapMarkers()" oninput="onEdit()"></textarea>
-    <div id="tip"></div>
+    <div id="markers"></div>
+    <textarea id="editor" readonly></textarea>
+    <div id="reflect">
+      <div id="reflect-bar">
+        <span class="phase">Reflect</span>
+        <span class="spacer"></span>
+        <span class="count" id="gapCount">3 个空隙</span>
+      </div>
+      <div id="reflect-content">
+        <h3>创作情境</h3>
+        <div class="gap-tag" id="gapTags"></div>
+        <div class="guide" id="guideText">点击左侧空隙标记查看引导。</div>
+        <button class="scene-btn" id="sceneBtn">进入场景 →</button>
+        <div id="status"><span id="guideIdx">0</span> / <span id="guideTotal">0</span></div>
+      </div>
+    </div>
   </div>
-  <div id="status">
-    <span>行号 <strong id="lineInfo">—</strong></span>
-    <span>点击空隙标记跳转到对应行</span>
+  <div id="footer">
+    <span>空隙标记与情境引导联动</span>
   </div>
 </div>
 <script>
-// 模拟的空隙数据：线号 → { 类型, 说明, 颜色分 }
-const DEMO_GAPS = {
-  3:  [{type:'时间跳跃', detail:'"第二天"这段时间未被写', score:3}],
-  7:  [{type:'动作间空隙', detail:'两个连续动作之间缺少过渡', score:3}],
-  11: [{type:'对话间隙', detail:'对白之间缺少动作描写', score:2}],
-  15: [{type:'视角切换', detail:'从他到她缺少重叠瞬间', score:3}],
-  19: [{type:'过渡压缩', detail:'"回过神来"暗示时间被压缩', score:2}],
-};
-const GAP_TEXT = `春天的一个工作日的下午，咖啡店外下着淅淅沥沥的小雨。
+// 演示数据：3 个空隙位置 + 对应引导
+const DEMO = [
+  { line: 3, score: 3, type: '动作空隙',
+    guide: 'L3 的两个动作之间缺少过渡。\n第一个动作结束时，角色的手在哪？呼吸节奏是怎样的？\n半秒钟——够一个人改变主意，也够一个人下定决心。' },
+  { line: 7, score: 3, type: '时间跳跃',
+    guide: 'L7 附近跳过了「第二天清晨」这段时间。\n房间里有什么声音？光线有变化吗？\n角色即使只是坐着，也有一具身体在时间里。' },
+  { line: 11, score: 2, type: '对话间隙',
+    guide: 'L11 的对白之间有一段沉默未被写。\n说话的人在开口前做了什么？吞咽了一下？\n沉默不是空白——它是角色正在处理情绪的物理时间。' },
+];
+
+const DEMO_TEXT = `春天的一个工作日的下午，咖啡店外下着淅淅沥沥的小雨。
 
 他愣神看着窗外的雨水沿着屋檐滑落到地面上。
 
@@ -68,11 +99,9 @@ const GAP_TEXT = `春天的一个工作日的下午，咖啡店外下着淅淅�
 "你来了。"
 "嗯。"
 
-他看着她湿漉漉的头发。
+他看着她湿漉漉的头发，从书包里掏出刚在超市买的毛巾。
 
-她低着头，拉着自己的头发，用毛巾擦了几遍。
-
-不知不觉间，他的手已经伸了出去。
+不知不觉间，他的手已经伸了出去，轻轻地擦了擦她的头发。
 
 擦了两下，他回过神来。
 
@@ -81,66 +110,65 @@ const GAP_TEXT = `春天的一个工作日的下午，咖啡店外下着淅淅�
 
 他忘不了，也不想忘。`;
 
-const LINE_H = 1.8 * 15; // line-height * font-size
-const PAD_TOP = 16;
-let gapData = {};
+const LINE_H = 1.8 * 14;
+const PAD = 14;
 
-function renderGapMarkers(gaps) {
-  const container = document.getElementById('gap-markers');
-  container.innerHTML = '';
-  document.getElementById('gapCount').textContent = Object.keys(gaps).length;
-  gapData = gaps;
+let active = null;
 
-  for (const line in gaps) {
-    const items = gaps[line];
-    const best = Math.max(...items.map(i => i.score));
+function render() {
+  const m = document.getElementById('markers');
+  m.innerHTML = '';
+
+  for (const d of DEMO) {
     const dot = document.createElement('div');
-    dot.className = 'gap-dot s' + best;
-    dot.style.top = (PAD_TOP + (parseInt(line) - 1) * LINE_H + 4) + 'px';
-    dot.dataset.line = line;
-
-    dot.addEventListener('mouseenter', e => {
-      const tip = document.getElementById('tip');
-      tip.innerHTML = items.map(i => `<div class="tt" style="color:${i.score===3?'var(--accent)':i.score===2?'var(--accent3)':'var(--red)'}">${i.type}</div><div>L${line}: ${i.detail}</div>`).join('');
-      const r = e.target.getBoundingClientRect();
-      tip.style.left = (r.right + 10) + 'px';
-      tip.style.top = Math.max(10, r.top - 10) + 'px';
-      tip.classList.add('show');
-    });
-    dot.addEventListener('mouseleave', () => document.getElementById('tip').classList.remove('show'));
-    dot.addEventListener('click', () => {
-      const ta = document.getElementById('editor');
-      const lines = ta.value.split('\n');
-      let pos = 0;
-      for (let i = 0; i < Math.min(parseInt(line) - 1, lines.length); i++) pos += lines[i].length + 1;
-      ta.focus();
-      ta.setSelectionRange(pos, pos);
-      ta.scrollTop = (parseInt(line) - 1) * LINE_H - 60;
-    });
-    container.appendChild(dot);
-
-    const lineEl = document.createElement('div');
-    lineEl.className = 'gap-line';
-    lineEl.style.top = (PAD_TOP + (parseInt(line) - 1) * LINE_H) + 'px';
-    lineEl.style.height = LINE_H + 'px';
-    container.appendChild(lineEl);
+    dot.className = 'dot g' + d.score;
+    dot.style.top = (PAD + (d.line - 1) * LINE_H + 4) + 'px';
+    dot.dataset.idx = DEMO.indexOf(d);
+    dot.addEventListener('click', () => selectGap(DEMO.indexOf(d)));
+    m.appendChild(dot);
   }
+
+  // 标签
+  const tags = document.getElementById('gapTags');
+  tags.innerHTML = DEMO.map(d =>
+    `<span class="t g${d.score}">${d.score === 3 ? '🟢' : '🟡'} ${d.type}</span>`
+  ).join('');
+
+  document.getElementById('guideTotal').textContent = DEMO.length;
+  selectGap(0);
 }
 
-function syncGapMarkers() {
+function selectGap(idx) {
+  if (active !== null) {
+    const prev = document.querySelectorAll('.dot')[active];
+    if (prev) prev.classList.remove('active');
+  }
+  active = idx;
+  const d = DEMO[idx];
+  const dots = document.querySelectorAll('.dot');
+  if (dots[idx]) dots[idx].classList.add('active');
+
+  document.getElementById('guideText').textContent = d.guide;
+  document.getElementById('guideIdx').textContent = idx + 1;
+  document.getElementById('gapCount').textContent = DEMO.length + ' 个空隙';
+
+  // 选中后跳转到编辑器对应行
+  const ta = document.getElementById('editor');
+  const lines = ta.value.split('\n');
+  let pos = 0;
+  for (let i = 0; i < Math.min(d.line - 1, lines.length); i++) pos += lines[i].length + 1;
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+  ta.scrollTop = (d.line - 1) * LINE_H - 60;
 }
 
-function onEdit() {
-  document.getElementById('lineInfo').textContent = document.getElementById('editor').value.split('\n').length + '行';
-}
+// 进入场景按钮：循环切换引导
+document.getElementById('sceneBtn').addEventListener('click', () => {
+  selectGap((active + 1) % DEMO.length);
+});
 
-function loadDemo() {
-  document.getElementById('editor').value = GAP_TEXT;
-  onEdit();
-  renderGapMarkers(DEMO_GAPS);
-}
-
-document.addEventListener('DOMContentLoaded', loadDemo);
+document.getElementById('editor').value = DEMO_TEXT;
+render();
 </script>
 </body>
 </html>
