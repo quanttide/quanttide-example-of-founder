@@ -42,23 +42,33 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
 .gap-dot.s2{background:var(--accent3)}
 .gap-dot.s1{background:var(--red)}
 #editor{flex:1;padding:14px 18px;border:none;outline:none;font-size:14px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
-/* ─── 右栏：Tab 切换 ─── */
+/* ─── 右栏：3R 状态条 + Tab 切换 ─── */
 #right{width:300px;background:var(--surface);flex-shrink:0;overflow:hidden;display:flex;flex-direction:column}
+/* 3R 状态条（始终可见） */
+#r3-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;font-size:11px}
+#r3-bar .phase-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+#r3-bar .phase-badge.review{background:#2b3a5e;color:var(--accent)}
+#r3-bar .phase-badge.reflect{background:#2b4a2e;color:var(--accent2)}
+#r3-bar .phase-badge.rewrite{background:#4a442b;color:var(--accent3)}
+#r3-bar .stat{color:var(--text-dim)}
+#r3-bar .stat strong{color:var(--text);font-weight:600}
+#r3-bar .spacer{flex:1}
+/* Tab 头 */
 #tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border)}
 #tabs .tab{flex:1;text-align:center;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;user-select:none}
 #tabs .tab:hover{color:var(--text)}
 #tabs .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Tab 面板 */
 #panels{flex:1;overflow-y:auto;position:relative}
 #panels .tab-panel{display:none;padding:12px;height:100%}
 #panels .tab-panel.active{display:block}
-/* Tab: 情境 */
-#panels .situation-text{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);white-space:pre-wrap}
-/* Tab: 评审 */
+/* 情境看板 */
+.situation-text{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent);white-space:pre-wrap}
+/* 评审看板 */
 .gap-list{display:flex;flex-direction:column;gap:2px}
 .gap-item{font-size:12px;padding:4px 8px;display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}
 .gap-item:hover{background:var(--surface2)}
 .gap-item .type{color:var(--text-dim);min-width:56px}
-.gap-item .text{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gap-item .line{color:var(--text-dim);margin-left:auto;font-size:11px}
 .style-list{display:flex;flex-direction:column;gap:4px;margin-top:8px}
 .style-row{display:flex;align-items:center;gap:6px;font-size:12px}
@@ -71,16 +81,6 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
 .style-row .score{color:var(--text-dim);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
 #total-score{font-size:20px;font-weight:700;color:var(--accent);margin-top:8px;text-align:center}
 #total-score small{font-size:13px;font-weight:400;color:var(--text-dim)}
-/* Tab: 3R */
-#dash-phase{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
-#dash-phase .p{text-align:center;padding:8px 4px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface2);color:var(--text-dim)}
-#dash-phase .p.active{background:var(--accent);color:#fff}
-#dash-stats{display:flex;gap:12px}
-#dash-stats .stat{flex:1;text-align:center;padding:10px;background:var(--surface2);border-radius:6px}
-#dash-stats .stat .n{font-size:18px;font-weight:700;display:block;color:var(--text)}
-#dash-stats .stat .l{color:var(--text-dim);font-size:11px;margin-top:2px;display:block}
-#history-list{margin-top:12px}
-#history-list .entry{font-size:12px;color:var(--text-dim);padding:4px 0;display:flex;justify-content:space-between;border-bottom:1px solid var(--border)}
 /* status bar */
 #status{display:flex;align-items:center;gap:12px;padding:0 12px;height:26px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0}
 #status strong{color:var(--text)}#status .spacer{flex:1}
@@ -119,32 +119,25 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
         <textarea id="editor" placeholder="粘贴或输入文本..." oninput="onEdit()" spellcheck="false"></textarea>
       </div>
     </div>
-    <!-- 右栏：Tab 切换 -->
+    <!-- 右栏：3R 状态条 + Tab 切换 -->
     <div id="right">
+      <div id="r3-bar">
+        <span class="phase-badge review" id="phaseBadge">Review</span>
+        <span class="stat">轮次 <strong id="r3Cycle">1</strong></span>
+        <span class="stat">评分 <strong id="r3Score">—</strong></span>
+        <span class="spacer"></span>
+      </div>
       <div id="tabs">
-        <div class="tab active" data-tab="situation" onclick="switchTab('situation')">🎯 情境</div>
-        <div class="tab" data-tab="review" onclick="switchTab('review')">📋 评审</div>
-        <div class="tab" data-tab="dash" onclick="switchTab('dash')">🔄 3R</div>
+        <div class="tab active" data-tab="review" onclick="switchTab('review')">📋 评审</div>
+        <div class="tab" data-tab="reflect" onclick="switchTab('reflect')">🎯 情境</div>
       </div>
       <div id="panels">
-        <div class="tab-panel active" id="panel-situation">
-          <div class="situation-text" id="situationText">点击「评审」查看情境引导。</div>
-        </div>
-        <div class="tab-panel" id="panel-review">
+        <div class="tab-panel active" id="panel-review">
           <div id="reviewContent"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">等待评审...</div></div>
           <div id="total-score">— <small>/100</small></div>
         </div>
-        <div class="tab-panel" id="panel-dash">
-          <div id="dash-phase">
-            <div class="p active" data-p="review">Review</div>
-            <div class="p" data-p="reflect">Reflect</div>
-            <div class="p" data-p="rewrite">Rewrite</div>
-          </div>
-          <div id="dash-stats">
-            <div class="stat"><span class="n" id="dashCycle">1</span><span class="l">轮次</span></div>
-            <div class="stat"><span class="n" id="dashScore">—</span><span class="l">评分</span></div>
-          </div>
-          <div id="history-list"></div>
+        <div class="tab-panel" id="panel-reflect">
+          <div class="situation-text" id="situationText">点击「评审」查看情境引导。</div>
         </div>
       </div>
     </div>
@@ -315,15 +308,16 @@ function runReview() {
   const r = analyze(text);
   $('statGaps').textContent = r.gaps.length;
   $('gapCount').textContent = r.gaps.length;
-  $('dashScore').textContent = r.avgScore;
+  $('r3Cycle').textContent = document.getElementById('r3Cycle').textContent;
+  $('r3Score').textContent = r.avgScore;
   $('total-score').innerHTML = r.avgScore + ' <small>/100</small>';
   updateGapMarkers(r.gaps);
 
-  // 情境面板
+  // 情境看板
   const sits = genSits(r.gaps);
   $('situationText').textContent = sits.length ? sits.join('\n\n——\n\n') : '当前未检测到引导。';
 
-  // 评审面板
+  // 评审看板
   let h = '';
   if (r.gaps.length) {
     h += '<div class="gap-list">';
