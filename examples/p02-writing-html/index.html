@@ -42,26 +42,42 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
 .gap-dot.s1{background:var(--red)}
 #editor{flex:1;padding:14px 16px;border:none;outline:none;font-size:14px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
 /* 右栏 */
-#right{width:280px;background:var(--surface);flex-shrink:0;overflow-y:auto;padding:10px 12px}
-#right h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px;margin-top:12px}
-#right h3:first-child{margin-top:0}
-.situation-text{font-size:12px;line-height:1.6;color:var(--text);padding:8px 10px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent);white-space:pre-wrap;margin-bottom:6px}
-.gap-item{font-size:11px;padding:3px 4px;display:flex;align-items:flex-start;gap:4px;border-radius:3px;cursor:pointer}
+#right{width:280px;background:var(--surface);flex-shrink:0;overflow-y:auto}
+.right-section{padding:10px 12px}
+.right-section+.right-section{border-top:1px solid var(--border)}
+.right-section h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.right-section h3 .badge{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:0 5px;border-radius:3px;font-weight:400}
+
+/* 情境引导 */
+.situation-text{font-size:12px;line-height:1.6;color:var(--text);padding:8px 10px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--accent);white-space:pre-wrap}
+
+/* 评审报告 */
+.gap-list{display:flex;flex-direction:column;gap:2px}
+.gap-item{font-size:11px;padding:3px 6px;display:flex;align-items:center;gap:4px;border-radius:3px;cursor:pointer}
 .gap-item:hover{background:var(--surface2)}
-.gap-item .l{color:var(--text-dim)}
-.score-row{display:flex;align-items:center;gap:4px;font-size:11px;padding:2px 0}
-.score-row .bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
-.score-row .bar .fill{height:100%;border-radius:3px}
-.score-row .bar .fill.good{background:var(--accent2)}
-.score-row .bar .fill.ok{background:var(--accent3)}
-.score-row .bar .fill.bad{background:var(--red)}
-.score-row .v{color:var(--text-dim);min-width:24px;text-align:right}
-.dash-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
-.dash-row .l{color:var(--text-dim)}
-.dash-row .v{font-weight:600}
-#phase-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:6px}
-#phase-grid .p{text-align:center;padding:4px;border-radius:4px;font-size:10px;font-weight:600;background:var(--surface2);color:var(--text-dim)}
+.gap-item .type{color:var(--text-dim);min-width:48px}
+.gap-item .text{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.style-list{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.style-row{display:flex;align-items:center;gap:4px;font-size:11px}
+.style-row .label{min-width:72px;color:var(--text-dim)}
+.style-row .bar{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.style-row .bar .fill{height:100%;border-radius:3px;transition:width .2s}
+.style-row .bar .fill.good{background:var(--accent2)}
+.style-row .bar .fill.ok{background:var(--accent3)}
+.style-row .bar .fill.bad{background:var(--red)}
+.style-row .score{color:var(--text-dim);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
+#total-score{font-size:16px;font-weight:700;color:var(--accent);margin-top:6px;text-align:center}
+#total-score small{font-size:12px;font-weight:400;color:var(--text-dim)}
+
+/* 仪表盘 */
+#dash{padding:6px 10px;background:var(--surface2);border-radius:6px}
+#phase-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+#phase-grid .p{text-align:center;padding:5px;border-radius:4px;font-size:11px;font-weight:600;background:var(--surface);color:var(--text-dim)}
 #phase-grid .p.active{background:var(--accent);color:#fff}
+#dash-stats{display:flex;gap:12px;margin-top:6px;font-size:11px}
+#dash-stats div{flex:1;text-align:center}
+#dash-stats .n{font-size:14px;font-weight:700;display:block;color:var(--text)}
+#dash-stats .l{color:var(--text-dim);font-size:10px}
 /* status */
 #status{display:flex;align-items:center;gap:12px;padding:0 12px;height:26px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0}
 #status strong{color:var(--text)}
@@ -103,18 +119,29 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
     </div>
     <!-- 右栏 -->
     <div class="panel" id="right">
-      <h3>🎯 创作情境</h3>
-      <div class="situation-text" id="situationText">点击「评审」查看情境引导。</div>
-      <h3>📋 评审</h3>
-      <div id="reviewContent"><div style="font-size:11px;color:var(--text-dim);opacity:.5">等待评审...</div></div>
-      <h3>🔄 3R</h3>
-      <div id="phase-grid">
-        <div class="p active" data-p="review">Review</div>
-        <div class="p" data-p="reflect">Reflect</div>
-        <div class="p" data-p="rewrite">Rewrite</div>
+      <div class="right-section">
+        <h3>🎯 情境</h3>
+        <div class="situation-text" id="situationText">点击「评审」查看情境引导。</div>
       </div>
-      <div class="dash-row"><span class="l">轮次</span><span class="v" id="dashCycle">1</span></div>
-      <div class="dash-row"><span class="l">评分</span><span class="v" id="dashScore">—</span></div>
+      <div class="right-section">
+        <h3>📋 评审 <span class="badge" id="gapBadge">0</span></h3>
+        <div id="reviewContent"><div style="font-size:11px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">等待评审...</div></div>
+        <div id="total-score">— <small>/100</small></div>
+      </div>
+      <div class="right-section">
+        <h3>🔄 3R</h3>
+        <div id="dash">
+          <div id="phase-grid">
+            <div class="p active" data-p="review">Review</div>
+            <div class="p" data-p="reflect">Reflect</div>
+            <div class="p" data-p="rewrite">Rewrite</div>
+          </div>
+          <div id="dash-stats">
+            <div><span class="n" id="dashCycle">1</span><span class="l">轮次</span></div>
+            <div><span class="n" id="dashScore">—</span><span class="l">评分</span></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <div id="status">
@@ -280,24 +307,30 @@ function runReview() {
   if (!text.trim()) return;
   const result = analyze(text);
   $('statGaps').textContent = result.gaps.length;
-  $('dashScore').textContent = result.avgScore + '/100';
+  $('gapBadge').textContent = result.gaps.length;
+  $('dashScore').textContent = result.avgScore;
+  $('total-score').innerHTML = result.avgScore + ' <small>/100</small>';
 
   updateGapMarkers(result.gaps);
 
   // 右栏评审
   let html = '';
   if (result.gaps.length) {
-    html += '<div style="font-size:11px;font-weight:600;margin-bottom:4px">空隙</div>';
+    html += '<div class="gap-list">';
+    const dots = {3:'🟢',2:'🟡',1:'🔴'};
     for (const g of result.gaps.slice(0, 8)) {
-      html += `<div class="gap-item"><span>${g.score===3?'🟢':g.score===2?'🟡':'🔴'}</span><span>L${g.line} <span class="l">${g.type}</span></span></div>`;
+      html += `<div class="gap-item"><span>${dots[g.score]||'⚪'}</span><span class="type">${g.type}</span><span class="text">L${g.line}</span></div>`;
     }
+    html += '</div>';
   }
-  html += '<div style="font-size:11px;font-weight:600;margin:8px 0 4px">风格</div>';
-  for (const s of result.styles) {
-    const cls = s.score >= 70 ? 'good' : s.score >= 40 ? 'ok' : 'bad';
-    html += `<div class="score-row"><span style="min-width:80px">${s.name}</span><div class="bar"><div class="fill ${cls}" style="width:${s.score}%"></div></div><span class="v">${s.score}%</span></div>`;
+  if (result.styles.length) {
+    html += '<div class="style-list">';
+    for (const s of result.styles) {
+      const cls = s.score >= 70 ? 'good' : s.score >= 40 ? 'ok' : 'bad';
+      html += `<div class="style-row"><span class="label">${s.name}</span><div class="bar"><div class="fill ${cls}" style="width:${s.score}%"></div></div><span class="score">${s.score}</span></div>`;
+    }
+    html += '</div>';
   }
-  html += `<div style="font-size:12px;font-weight:600;margin-top:6px">综合 ${result.avgScore}/100</div>`;
   $('reviewContent').innerHTML = html;
 
   // 情境引导
