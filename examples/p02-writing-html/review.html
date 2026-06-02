@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoC 4: 评审报告卡片</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b;--red:#ff6b6b}
+body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px}
+#card{width:400px;background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+#card .section{padding:16px}
+#card .section+.section{border-top:1px solid var(--border)}
+#card h2{font-size:13px;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+#card h2 .badge{font-size:11px;font-weight:400;color:var(--text-dim);background:var(--surface2);padding:1px 6px;border-radius:4px}
+.score-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.score-row .bar{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.score-row .bar .fill{height:100%;border-radius:4px;transition:width .3s}
+.score-row .bar .fill.good{background:var(--accent2)}
+.score-row .bar .fill.ok{background:var(--accent3)}
+.score-row .bar .fill.bad{background:var(--red)}
+.score-row .val{min-width:32px;text-align:right;font-size:12px;color:var(--text-dim)}
+.gap-item{display:flex;align-items:flex-start;gap:8px;padding:5px 6px;border-radius:4px;font-size:13px;cursor:pointer;transition:background .1s}
+.gap-item:hover{background:var(--surface2)}
+.gap-item .dot{flex-shrink:0;margin-top:2px;font-size:14px}
+.gap-item .desc{font-size:12px;color:var(--text-dim);margin-top:1px}
+#total{text-align:center;padding:16px;font-size:24px;font-weight:700;color:var(--accent)}
+#total small{font-size:14px;font-weight:400;color:var(--text-dim)}
+#weak{font-size:12px;color:var(--text-dim);padding:8px 12px;background:var(--surface2);border-radius:6px;margin-top:8px}
+#weak strong{color:var(--text)}
+button{display:block;margin:0 auto 24px;padding:8px 20px;border-radius:6px;border:1px solid var(--accent);background:none;color:var(--accent);font-size:13px;cursor:pointer}
+button:hover{background:var(--surface)}
+</style>
+</head>
+<body>
+<div style="display:flex;flex-direction:column;align-items:center;width:100%;max-width:420px">
+  <div id="card">
+    <div id="total">
+      79<small>/100</small>
+      <div style="font-size:12px;font-weight:400;color:var(--text-dim);margin-top:4px">风格综合评分</div>
+    </div>
+    <div class="section">
+      <h2>🔍 空隙检测 <span class="badge">12 处</span></h2>
+      <div id="gapList"></div>
+    </div>
+    <div class="section">
+      <h2>📊 风格检查</h2>
+      <div id="styleList"></div>
+    </div>
+    <div class="section">
+      <div id="weak"><strong>优先改进</strong>: 对话→动作 (28%) — 用身体动作替代对话</div>
+    </div>
+  </div>
+  <button onclick="regenerate()">🔄 重新生成</button>
+</div>
+<script>
+// 演示数据：模拟评审报告
+const GAP_TYPES = [
+  {type:'时间跳跃', desc:'"第二天"这段时间未被写', score:3},
+  {type:'动作间空隙', desc:'两个连续动作之间缺少过渡', score:3},
+  {type:'动作间空隙', desc:'两个连续动作之间缺少过渡', score:3},
+  {type:'对话间隙', desc:'对白之间缺少动作或心理描写', score:2},
+  {type:'视角切换', desc:'从他到她缺少重叠瞬间', score:3},
+  {type:'对话间隙', desc:'对白之间缺少动作或心理描写', score:2},
+  {type:'过渡压缩', desc:'"回过神来"暗示时间被压缩', score:2},
+  {type:'动作间空隙', desc:'两个连续动作之间缺少过渡', score:3},
+  {type:'动作间空隙', desc:'两个连续动作之间缺少过渡', score:3},
+];
+
+const STYLES = [
+  {name:'对话→动作', score:28, tip:'用身体动作替代对话'},
+  {name:'身份标签→身体感知', score:100, tip:'通过物与身体传递'},
+  {name:'命名情绪→隐藏情绪', score:70, tip:'让读者自己命名'},
+  {name:'状态句结尾', score:100, tip:'停在最紧张时刻'},
+  {name:'半秒钟发现密度', score:100, tip:'发现动作空隙'},
+  {name:'过去闪回→碎片插入', score:100, tip:'过去只解释现在'},
+];
+
+const TYPE_LABELS = {
+  timeJump:'时间跳跃', dialogGap:'对话间隙', actionGap:'动作间空隙',
+  transitionGap:'过渡压缩', povGap:'视角切换',
+};
+
+function renderGaps(gaps) {
+  const el = document.getElementById('gapList');
+  el.innerHTML = gaps.map(g => {
+    const dot = g.score === 3 ? '🟢' : g.score === 2 ? '🟡' : '🔴';
+    return `<div class="gap-item"><span class="dot">${dot}</span><div><div>${g.type}</div><div class="desc">${g.desc}</div></div></div>`;
+  }).join('');
+}
+
+function renderStyles(styles) {
+  const el = document.getElementById('styleList');
+  el.innerHTML = styles.map(s => {
+    const cls = s.score >= 70 ? 'good' : s.score >= 40 ? 'ok' : 'bad';
+    return `<div class="score-row"><span style="min-width:110px">${s.name}</span><div class="bar"><div class="fill ${cls}" style="width:${s.score}%"></div></div><span class="val">${s.score}%</span></div>`;
+  }).join('');
+}
+
+// 随机扰动演示数据
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function regenerate() {
+  const gapCount = 8 + Math.floor(Math.random() * 8);
+  const gaps = [];
+  for (let i = 0; i < gapCount; i++) {
+    const type = Object.keys(TYPE_LABELS)[Math.floor(Math.random() * Object.keys(TYPE_LABELS).length)];
+    const score = Math.random() > 0.5 ? 3 : 2;
+    const descs = {
+      timeJump:'时间跳跃', dialogGap:'对白缺动作', actionGap:'动作缺过渡',
+      transitionGap:'时间被压缩', povGap:'视角缺重叠',
+    };
+    gaps.push({type: TYPE_LABELS[type], desc: descs[type], score});
+  }
+
+  const styles = STYLES.map(s => ({
+    ...s,
+    score: s.name === '对话→动作' ? Math.max(20, Math.min(80, s.score + Math.round((Math.random() - 0.5) * 20))) : s.score,
+  }));
+
+  const total = Math.round(styles.reduce((s, st) => s + st.score, 0) / styles.length);
+  document.getElementById('total').innerHTML = `${total}<small>/100</small><div style="font-size:12px;font-weight:400;color:var(--text-dim);margin-top:4px">风格综合评分</div>`;
+  document.querySelector('.badge').textContent = gaps.length + ' 处';
+
+  const weak = [...styles].sort((a, b) => a.score - b.score)[0];
+  document.getElementById('weak').innerHTML = `<strong>优先改进</strong>: ${weak.name} (${weak.score}%) — ${weak.tip}`;
+
+  renderGaps(gaps);
+  renderStyles(styles);
+}
+
+renderGaps(GAP_TYPES);
+renderStyles(STYLES);
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoC 3: 3R 阶段机</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b}
+body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;align-items:center;justify-content:center}
+#app{width:480px;padding:24px;background:var(--surface);border-radius:12px;border:1px solid var(--border)}
+h1{font-size:16px;color:var(--accent);margin-bottom:16px;text-align:center}
+h1 small{font-weight:400;font-size:12px;color:var(--text-dim);margin-left:6px}
+#phaseGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px}
+.phase-item{text-align:center;padding:10px 4px;border-radius:6px;font-size:13px;font-weight:600;background:var(--surface2);color:var(--text-dim);transition:all .2s}
+.phase-item.active{background:var(--accent);color:#fff;box-shadow:0 0 8px rgba(124,155,255,.3)}
+.phase-item.done{background:var(--accent2);color:#fff}
+#controls{display:flex;gap:8px;margin-bottom:16px}
+#controls button{flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;text-align:center;transition:all .15s}
+#controls button:hover{background:var(--border)}
+#controls button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+#controls button:disabled{opacity:.3;cursor:default}
+#controls button.btn-done{background:var(--accent2);color:#fff;border-color:var(--accent2);opacity:.6!important}
+#dashboard{display:flex;flex-direction:column;gap:6px}
+.row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row .label{color:var(--text-dim)}
+.row .value{font-weight:600}
+#log{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+#log h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px}
+#log .entry{font-size:12px;color:var(--text-dim);padding:2px 0}
+#resetBtn{display:block;margin:16px auto 0;padding:4px 12px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text-dim);font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>🔄 3R 阶段机 <small>状态机验证</small></h1>
+  <div id="phaseGrid">
+    <div class="phase-item active" data-phase="review">Review</div>
+    <div class="phase-item" data-phase="reflect">Reflect</div>
+    <div class="phase-item" data-phase="rewrite">Rewrite</div>
+  </div>
+  <div id="controls">
+    <button id="btnReview" class="primary" onclick="advance('review')">▶ 评审</button>
+    <button id="btnReflect" onclick="advance('reflect')" disabled>▶ 反思</button>
+    <button id="btnRewrite" onclick="advance('rewrite')" disabled>下一轮 ➜</button>
+  </div>
+  <div id="dashboard">
+    <div class="row"><span class="label">当前阶段</span><span class="value" id="curPhase">Review</span></div>
+    <div class="row"><span class="label">轮次</span><span class="value" id="curCycle">1</span></div>
+    <div class="row"><span class="label">风格评分</span><span class="value" id="curScore">—</span></div>
+    <div class="row"><span class="label">周期时长</span><span class="value" id="curDuration">—</span></div>
+  </div>
+  <div id="log">
+    <h3>📋 历史记录</h3>
+    <div id="logEntries"><span style="color:var(--text-dim);opacity:.5;font-size:12px">暂无记录</span></div>
+  </div>
+  <button id="resetBtn" onclick="resetState()">重置</button>
+</div>
+<script>
+// 3R 状态机：不依赖外部引擎，只验证阶段切换逻辑
+const PHASES = {review:'review', reflect:'reflect', rewrite:'rewrite'};
+const ORDER = ['review','reflect','rewrite'];
+const SCORE_POOL = [79, 85, 91]; // 模拟评分随轮次增长
+
+let state = {
+  cycle: 0,
+  phase: 'review',
+  score: null,
+  phaseStart: null,
+  history: [],
+};
+
+function advance(phase) {
+  const idx = ORDER.indexOf(phase);
+  const curIdx = ORDER.indexOf(state.phase);
+  if (idx < curIdx) return; // 禁止回退
+
+  state.phase = phase;
+
+  if (phase === 'review') {
+    if (!state.cycle) state.cycle = 1;
+    state.phaseStart = Date.now();
+    state.score = SCORE_POOL[Math.min(state.cycle - 1, SCORE_POOL.length - 1)];
+    document.getElementById('btnReflect').disabled = false;
+    document.getElementById('btnReflect').style.opacity = '1';
+    document.getElementById('btnReview').classList.add('btn-done');
+  }
+
+  if (phase === 'reflect') {
+    document.getElementById('btnRewrite').disabled = false;
+    document.getElementById('btnRewrite').style.opacity = '1';
+    document.getElementById('btnReflect').classList.add('btn-done');
+  }
+
+  if (phase === 'rewrite') {
+    const dur = state.phaseStart ? Math.round((Date.now() - state.phaseStart) / 1000) + 's' : '—';
+    state.history.push({
+      cycle: state.cycle,
+      score: state.score,
+      duration: dur,
+    });
+    state.cycle++;
+    state.phaseStart = Date.now();
+    state.score = SCORE_POOL[Math.min(state.cycle - 1, SCORE_POOL.length - 1)];
+    // 重置按钮状态
+    document.getElementById('btnRewrite').disabled = true;
+    document.getElementById('btnRewrite').style.opacity = '.3';
+    document.getElementById('btnReview').classList.remove('btn-done');
+    document.getElementById('btnReflect').classList.remove('btn-done');
+    document.getElementById('btnReflect').disabled = true;
+    document.getElementById('btnReflect').style.opacity = '.3';
+    renderLog();
+  }
+
+  renderDashboard();
+}
+
+function renderDashboard() {
+  document.getElementById('curPhase').textContent = state.phase.charAt(0).toUpperCase() + state.phase.slice(1);
+  document.getElementById('curCycle').textContent = state.cycle || 1;
+  document.getElementById('curScore').textContent = state.score ? state.score + '/100' : '—';
+  document.getElementById('curDuration').textContent = state.phaseStart ? '进行中...' : '—';
+
+  document.querySelectorAll('.phase-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.phase === state.phase);
+  });
+}
+
+function renderLog() {
+  const el = document.getElementById('logEntries');
+  el.innerHTML = state.history.length
+    ? state.history.map((h, i) => `<div class="entry">第${i+1}轮 | ${h.score}/100 | ${h.duration}</div>`).join('')
+    : '<span style="color:var(--text-dim);opacity:.5;font-size:12px">暂无记录</span>';
+}
+
+function resetState() {
+  state = { cycle:0, phase:'review', score:null, phaseStart:null, history:[] };
+  document.getElementById('btnReflect').disabled = true;
+  document.getElementById('btnReflect').style.opacity = '.3';
+  document.getElementById('btnRewrite').disabled = true;
+  document.getElementById('btnRewrite').style.opacity = '.3';
+  document.getElementById('btnReview').classList.remove('btn-done');
+  document.getElementById('btnReflect').classList.remove('btn-done');
+  renderDashboard();
+  renderLog();
+}
+
+document.addEventListener('DOMContentLoaded', renderDashboard);
+</script>
+</body>
+</html>

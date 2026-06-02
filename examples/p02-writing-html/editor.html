@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PoC 6: Markdown 编辑 + 预览</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#1a1b1e;--surface:#25262b;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b}
+body{font:15px/1.8 -apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh}
+#header{display:flex;align-items:center;gap:8px;padding:0 12px;height:40px;background:var(--surface);border-bottom:1px solid var(--border);font-size:13px;user-select:none}
+#header .logo{font-weight:700;color:var(--accent)}
+#header .spacer{flex:1}
+#header button{background:none;border:none;color:var(--text-dim);padding:4px 10px;cursor:pointer;font-size:12px;border-radius:4px}
+#header button:hover{background:var(--surface);color:var(--text)}
+#header button.active{color:var(--accent);background:var(--surface)}
+#header .meta{font-size:12px;color:var(--text-dim)}
+#main{flex:1;display:flex;overflow:hidden}
+#editor{flex:1;padding:20px 24px;border:none;outline:none;font-size:15px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit;overflow-y:auto}
+#preview{flex:1;padding:20px 24px;overflow-y:auto;background:var(--bg)}
+#preview h1{font-size:24px;color:#fff;margin:20px 0 10px}
+#preview h2{font-size:20px;color:#fff;margin:16px 0 8px}
+#preview h3{font-size:17px;color:#fff;margin:14px 0 6px}
+#preview h4{font-size:15px;color:var(--text);margin:10px 0 4px}
+#preview p{margin:8px 0}
+#preview blockquote{border-left:3px solid var(--accent);padding-left:14px;color:var(--text-dim);margin:8px 0}
+#preview blockquote p{margin:4px 0}
+#preview em{font-style:italic;color:var(--accent3)}
+#preview strong{color:#fff}
+#preview hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+#preview ul,#preview ol{padding-left:24px;margin:8px 0}
+#preview code{background:var(--surface);padding:1px 5px;border-radius:3px;font-size:13px}
+#preview pre{background:var(--surface);padding:12px;border-radius:6px;overflow-x:auto;margin:8px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <span class="logo">✎ 写作云 <small style="font-weight:400;color:var(--text-dim);font-size:11px">PoC: 编辑器</small></span>
+    <span class="spacer"></span>
+    <button class="active" id="btnEdit" onclick="setMode('edit')">✎ 编辑</button>
+    <button id="btnPreview" onclick="setMode('preview')">👁 预览</button>
+    <span class="meta" id="wordCount" style="margin-left:8px">0 字</span>
+  </div>
+  <div id="main">
+    <textarea id="editor" placeholder="在此输入 Markdown..." oninput="onEdit()" spellcheck="false"># 咖啡厅重逢
+
+春天的一个工作日的下午，咖啡店外下着淅淅沥沥的小雨。
+
+他愣神看着窗外的雨水沿着屋檐滑落到地面上。
+
+这是一家坐落在小院子里的咖啡店，屋里只有零星的几张桌子。
+
+他又想起了她了。
+
+> 她更成熟了，更好看了。
+> 更渴望她了。
+
+他打开手机相册里那个常打开的星标相簿，又翻到了她的那张照片。
+
+那是他存了**十年**的照片。
+
+*不知不觉间*，他的手已经伸了出去，轻轻地擦了擦她的头发。
+
+擦了两下，他回过神来。赶忙停下来，把毛巾递给她。
+
+她也不舍地回过神，慢慢伸手接过毛巾。</textarea>
+    <div id="preview" style="display:none"></div>
+  </div>
+</div>
+<script>
+let mode = 'edit';
+
+function renderMarkdown(text) {
+  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const lines = h.split('\n');
+  const out = [];
+  let inBlock = false;
+
+  for (const l of lines) {
+    const t = l.trim();
+    if (t.match(/^# /))        { out.push('<h1>'+t.slice(2)+'</h1>'); continue; }
+    if (t.match(/^## /))       { out.push('<h2>'+t.slice(3)+'</h2>'); continue; }
+    if (t.match(/^### /))      { out.push('<h3>'+t.slice(4)+'</h3>'); continue; }
+    if (t.match(/^#### /))     { out.push('<h4>'+t.slice(5)+'</h4>'); continue; }
+    if (t.match(/^> (.+)/)) {
+      if (!inBlock) { out.push('<blockquote>'); inBlock = true; }
+      out.push('<p>'+inlineMd(t.slice(2))+'</p>');
+      continue;
+    }
+    if (inBlock) { out.push('</blockquote>'); inBlock = false; }
+    if (t.match(/^---+$/)) { out.push('<hr>'); continue; }
+    if (t === '') { out.push(''); continue; }
+    out.push('<p>'+inlineMd(t)+'</p>');
+  }
+  if (inBlock) out.push('</blockquote>');
+  return out.join('\n');
+}
+
+function inlineMd(s) {
+  return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>');
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnEdit').className = m === 'edit' ? 'active' : '';
+  document.getElementById('btnPreview').className = m === 'preview' ? 'active' : '';
+  document.getElementById('editor').style.display = m === 'edit' ? 'block' : 'none';
+  document.getElementById('preview').style.display = m === 'preview' ? 'block' : 'none';
+  if (m === 'preview') document.getElementById('preview').innerHTML = renderMarkdown(document.getElementById('editor').value);
+}
+
+function onEdit() {
+  const text = document.getElementById('editor').value;
+  document.getElementById('wordCount').textContent = text.length + ' 字';
+  if (mode === 'preview') document.getElementById('preview').innerHTML = renderMarkdown(text);
+}
+
+document.addEventListener('DOMContentLoaded', onEdit);
+</script>
+</body>
+</html>
