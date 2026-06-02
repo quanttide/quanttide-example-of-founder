@@ -6,119 +6,101 @@
 <title>写作云 — 合成工作台</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b;--red:#ff6b6b;--panel-min:120px;--situ-min:180px}
+:root{--bg:#1a1b1e;--surface:#25262b;--surface2:#2c2e33;--border:#373a40;--text:#c1c2c5;--text-dim:#909296;--accent:#7c9bff;--accent2:#69db7c;--accent3:#ffd43b;--red:#ff6b6b}
 body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100vh}
-/* header */
-#header{display:flex;align-items:center;gap:8px;padding:0 12px;height:40px;background:var(--surface);border-bottom:1px solid var(--border);font-size:13px;user-select:none;flex-shrink:0}
+#header{display:flex;align-items:center;gap:8px;padding:0 12px;height:40px;background:var(--surface);border-bottom:1px solid var(--border);font-size:13px;flex-shrink:0;user-select:none}
 #header .logo{font-weight:700;color:var(--accent)}
 #header .logo small{font-weight:400;color:var(--text-dim);font-size:11px;margin-left:6px}
 #header .spacer{flex:1}
 #header button{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px}
 #header button:hover{background:var(--border)}
 #header button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-/* main: flex 三栏 */
 #main{flex:1;display:flex;overflow:hidden}
 .panel{display:flex;flex-direction:column;overflow:hidden}
-/* ─── 左栏：文章列表 ─── */
+/* left */
 #left{width:200px;background:var(--surface);flex-shrink:0;overflow-y:auto}
-#left .section{padding:10px 12px}
-#left .section+.section{border-top:1px solid var(--border)}
+#left .sec{padding:10px 12px}
+#left .sec+.sec{border-top:1px solid var(--border)}
 #left h3{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px}
-#left .article{font-size:12px;padding:5px 0;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text);border-radius:3px}
+#left .article{font-size:12px;padding:5px 0;display:flex;align-items:center;gap:6px;cursor:pointer;border-radius:3px}
 #left .article:hover{color:var(--accent)}
 #left .article.active{color:var(--accent);font-weight:600}
-#left .article .status{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:0 5px;border-radius:3px;margin-left:auto}
-#left .sample-btn{width:100%;margin-top:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px;border-radius:4px;cursor:pointer;font-size:11px}
-/* ─── 中栏：编辑器 + 空隙标记 ─── */
+#left .article .st{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:0 5px;border-radius:3px;margin-left:auto}
+.sample-btn{width:100%;margin-top:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px;border-radius:4px;cursor:pointer;font-size:11px}
+/* center */
 #center{flex:1;display:flex;flex-direction:column;overflow:hidden}
 #editor-toolbar{display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
 #editor-toolbar .spacer{flex:1}
-#editor-wrapper{flex:1;display:flex;overflow:hidden}
+#editor-wrap{flex:1;display:flex;overflow:hidden}
 #gap-markers{width:18px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:relative}
-.gap-dot{position:absolute;left:50%;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:2}
-.gap-dot:hover{transform:translate(-50%,-50%) scale(1.4);z-index:3}
-.gap-dot.s3{background:var(--accent)}
-.gap-dot.s2{background:var(--accent3)}
-.gap-dot.s1{background:var(--red)}
+.gd{position:absolute;left:50%;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:2}
+.gd:hover{transform:translate(-50%,-50%) scale(1.4);z-index:3}
+.gd.s3{background:var(--accent)}
+.gd.s2{background:var(--accent3)}
+.gd.s1{background:var(--red)}
 #editor{flex:1;padding:14px 18px;border:none;outline:none;font-size:14px;line-height:1.8;resize:none;background:var(--bg);color:var(--text);font-family:inherit}
-/* ─── 右栏 ─── */
+/* right */
 #right{width:300px;background:var(--surface);flex-shrink:0;overflow:hidden;display:flex;flex-direction:column}
-#r3-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;font-size:11px}
-#r3-bar .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
-#r3-bar .badge.review{background:#2b3a5e;color:var(--accent)}
-#r3-bar .badge.reflect{background:#2b4a2e;color:var(--accent2)}
-#r3-bar .badge.rewrite{background:#4a442b;color:var(--accent3)}
-#r3-bar .stat{color:var(--text-dim)}
-#r3-bar .stat strong{color:var(--text);font-weight:600}
-#r3-bar .spacer{flex:1}
+#r3{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;font-size:11px}
+#r3 .bd{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+#r3 .bd.rv{background:#2b3a5e;color:var(--accent)}
+#r3 .bd.rf{background:#2b4a2e;color:var(--accent2)}
+#r3 .bd.rw{background:#4a442b;color:var(--accent3)}
+#r3 .s{color:var(--text-dim)}
+#r3 .s strong{color:var(--text);font-weight:600}
+#r3 .sp{flex:1}
 
-/* Tab 头：三阶段 */
+/* tabs */
 #tabs{display:flex;flex-shrink:0;border-bottom:1px solid var(--border)}
-#tabs .tab{flex:1;text-align:center;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;user-select:none}
-#tabs .tab:hover{color:var(--text)}
-#tabs .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+#tabs .t{flex:1;text-align:center;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;user-select:none}
+#tabs .t:hover{color:var(--text)}
+#tabs .t.act{color:var(--accent);border-bottom-color:var(--accent)}
 
-/* Tab 面板通用 */
-#panels{flex:1;overflow-y:auto}
-#panels .panel{display:none;padding:12px}
-#panels .panel.active{display:block}
+/* panels */
+#ps{flex:1;overflow-y:auto}
+#ps .p{display:none;padding:10px}
+#ps .p.act{display:block}
+#ps h4{font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:6px}
 
-/* Review 看板：空隙 + 风格 */
-.rv-gaps{display:flex;flex-direction:column;gap:2px}
-.rv-gap{font-size:12px;padding:4px 8px;display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}
-.rv-gap:hover{background:var(--surface2)}
-.rv-gap .t{color:var(--text-dim);min-width:56px}
-.rv-gap .l{color:var(--text-dim);margin-left:auto;font-size:11px}
-.rv-styles{display:flex;flex-direction:column;gap:4px;margin-top:8px}
-.rv-style{display:flex;align-items:center;gap:6px;font-size:12px}
-.rv-style .lb{min-width:80px;color:var(--text-dim)}
-.rv-style .bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
-.rv-style .bar .fill{height:100%;border-radius:3px;transition:width .2s}
-.rv-style .bar .fill.good{background:var(--accent2)}
-.rv-style .bar .fill.ok{background:var(--accent3)}
-.rv-style .bar .fill.bad{background:var(--red)}
-.rv-style .sc{color:var(--text-dim);min-width:24px;text-align:right;font-variant-numeric:tabular-nums}
-#rv-total{font-size:20px;font-weight:700;color:var(--accent);margin-top:8px;text-align:center}
-#rv-total small{font-size:13px;font-weight:400;color:var(--text-dim)}
+/* Review: gaps + styles */
+.rg{display:flex;flex-direction:column;gap:2px}
+.ri{font-size:12px;padding:4px 8px;display:flex;align-items:center;gap:6px;border-radius:4px;cursor:pointer}
+.ri:hover{background:var(--surface2)}
+.ri .ty{color:var(--text-dim);min-width:56px}
+.ri .ln{color:var(--text-dim);margin-left:auto;font-size:11px}
+.rs{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.rsi{display:flex;align-items:center;gap:6px;font-size:12px}
+.rsi .lb{min-width:80px;color:var(--text-dim)}
+.rsi .bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.rsi .bar .f{height:100%;border-radius:3px;transition:width .2s}
+.rsi .bar .f.g{background:var(--accent2)}
+.rsi .bar .f.o{background:var(--accent3)}
+.rsi .bar .f.b{background:var(--red)}
+.rsi .sc{color:var(--text-dim);min-width:24px;text-align:right}
+#total{font-size:20px;font-weight:700;color:var(--accent);margin-top:8px;text-align:center}
+#total small{font-size:13px;font-weight:400;color:var(--text-dim)}
 
-/* Reflect 看板：空隙引导 */
-.rf-guide{font-size:13px;line-height:1.7;color:var(--text);padding:12px 14px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent2);white-space:pre-wrap;margin-bottom:10px}
-.rf-btn{width:100%;padding:7px;border-radius:6px;border:1px solid var(--accent2);background:none;color:var(--accent2);font-size:12px;cursor:pointer;text-align:center}
-.rf-btn:hover{background:var(--surface2)}
-.rf-idx{font-size:11px;color:var(--text-dim);text-align:center;margin-top:6px}
+/* Reflect: actionable gaps — each gap is "something to write here" */
+.rf-list{display:flex;flex-direction:column;gap:8px}
+.rf-card{padding:10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent2)}
+.rf-card .loc{font-size:11px;color:var(--accent2);font-weight:600;margin-bottom:4px}
+.rf-card .guide{font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap;margin-bottom:6px}
+.rf-card .btn{display:block;padding:5px 0;border-radius:4px;border:1px solid var(--accent2);background:none;color:var(--accent2);font-size:11px;cursor:pointer;text-align:center;width:100%}
+.rf-card .btn:hover{background:var(--surface)}
 
-/* Rewrite 看板：变化 + 历史 */
-.rw-diff{display:flex;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:10px}
-.rw-diff .old{font-size:16px;color:var(--text-dim)}
-.rw-diff .arr{color:var(--text-dim);font-size:14px}
-.rw-diff .new{font-size:22px;font-weight:700;color:var(--accent2)}
-.rw-diff .new small{font-size:13px;font-weight:400;color:var(--text-dim)}
-.rw-diff .delta{font-size:12px;font-weight:600}
-.rw-diff .delta.up{color:var(--accent2)}
-.rw-diff .delta.down{color:var(--red)}
-.rw-timeline{display:flex;flex-direction:column;gap:4px}
-.rw-tl-entry{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;font-size:12px}
-.rw-tl-entry .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.rw-tl-entry .dot.cur{background:var(--accent2)}
-.rw-tl-entry .dot.done{background:var(--text-dim);opacity:.4}
-.rw-tl-entry .rd{color:var(--text-dim);min-width:36px}
-.rw-tl-entry .ds{flex:1;color:var(--text)}
-.rw-tl-entry .sc{font-weight:600;color:var(--accent2)}
-.rw-items{display:flex;flex-direction:column;gap:3px;margin-top:8px}
-.rw-item{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 0}
-.rw-item .i{flex-shrink:0}
-.rw-item .i.ok{color:var(--accent2)}
-.rw-item .i.pd{color:var(--accent3)}
-.rw-item .lb{flex:1;color:var(--text-dim)}
-.rw-item .st{font-size:11px;font-weight:600}
-.rw-item .st.ok{color:var(--accent2)}
-.rw-item .st.pd{color:var(--accent3)}
-#rw-section-title{margin-top:12px;font-size:11px;text-transform:uppercase;color:var(--text-dim);letter-spacing:.8px;margin-bottom:4px}
-/* status bar */
+/* Rewrite: actionable suggestions — each item is "consider changing this" */
+.rw-list{display:flex;flex-direction:column;gap:8px}
+.rw-card{padding:10px;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent3)}
+.rw-card .loc{font-size:11px;color:var(--accent3);font-weight:600;margin-bottom:4px}
+.rw-card .orig{font-size:12px;color:var(--text-dim);padding:4px 6px;background:var(--surface);border-radius:4px;margin-bottom:4px;font-style:italic}
+.rw-card .sug{font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap;margin-bottom:6px}
+.rw-card .btn{display:block;padding:5px 0;border-radius:4px;border:1px solid var(--accent3);background:none;color:var(--accent3);font-size:11px;cursor:pointer;text-align:center;width:100%}
+.rw-card .btn:hover{background:var(--surface)}
+
+/* status */
 #status{display:flex;align-items:center;gap:12px;padding:0 12px;height:26px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0}
 #status strong{color:var(--text)}#status .spacer{flex:1}
-/* scrollbar */
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -133,58 +115,45 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
     <button onclick="loadSample()">加载样本</button>
   </div>
   <div id="main">
-    <!-- 左栏：文章列表 -->
     <div id="left">
-      <div class="section">
+      <div class="sec">
         <h3>📄 底稿</h3>
-        <div class="article active"><span>✎</span> 咖啡厅重逢 <span class="status">当前</span></div>
-        <div class="article" style="color:var(--text-dim)"><span>📄</span> 未命名-2</div>
+        <div class="article active"><span>✎</span> 咖啡厅重逢 <span class="st">当前</span></div>
         <button class="sample-btn" onclick="loadSample()">加载测试底稿</button>
       </div>
     </div>
-    <!-- 中栏：编辑器 -->
     <div id="center">
       <div id="editor-toolbar">
-        <span style="font-size:11px;color:var(--text-dim)">空隙 <strong id="gapCount" style="color:var(--text)">0</strong></span>
+        <span style="font-size:11px;color:var(--text-dim)">空隙 <strong id="gapCnt" style="color:var(--text)">0</strong></span>
         <span class="spacer"></span>
       </div>
-      <div id="editor-wrapper">
+      <div id="editor-wrap">
         <div id="gap-markers"></div>
-        <textarea id="editor" placeholder="粘贴或输入文本..." oninput="onEdit()" spellcheck="false"></textarea>
+        <textarea id="editor" placeholder="在此输入文本..." oninput="onEdit()" spellcheck="false"></textarea>
       </div>
     </div>
-    <!-- 右栏 -->
     <div id="right">
-      <div id="r3-bar">
-        <span class="badge review" id="r3Badge">Review</span>
-        <span class="stat">轮次 <strong id="r3Cycle">1</strong></span>
-        <span class="stat">评分 <strong id="r3Score">—</strong></span>
-        <span class="spacer"></span>
+      <div id="r3">
+        <span class="bd rv" id="r3bd">Review</span>
+        <span class="s">轮次 <strong id="r3cy">1</strong></span>
+        <span class="s">评分 <strong id="r3sc">—</strong></span>
+        <span class="sp"></span>
       </div>
       <div id="tabs">
-        <div class="tab active" data-tab="review" onclick="switchTab('review')">📋 评审</div>
-        <div class="tab" data-tab="reflect" onclick="switchTab('reflect')">🎯 情境</div>
-        <div class="tab" data-tab="rewrite" onclick="switchTab('rewrite')">✏️ 改写</div>
+        <div class="t act" data-tab="review" onclick="switchTab('review')">📋 评审</div>
+        <div class="t" data-tab="reflect" onclick="switchTab('reflect')">🎯 情境</div>
+        <div class="t" data-tab="rewrite" onclick="switchTab('rewrite')">✏️ 改写</div>
       </div>
-      <div id="panels">
-        <div class="panel active" id="pn-review">
-          <div id="rv-content"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">等待评审...</div></div>
-          <div id="rv-total">— <small>/100</small></div>
+      <div id="ps">
+        <div class="p act" id="pn-rv">
+          <div id="rv-body"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">等待评审...</div></div>
+          <div id="total">— <small>/100</small></div>
         </div>
-        <div class="panel" id="pn-reflect">
-          <div class="rf-guide" id="rf-guide">点击「评审」查看情境引导。</div>
-          <button class="rf-btn" onclick="nextReflect()">下一条引导 →</button>
-          <div class="rf-idx" id="rf-idx">0 / 0</div>
+        <div class="p" id="pn-rf">
+          <div id="rf-body"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">评审后查看可写位置。</div></div>
         </div>
-        <div class="panel" id="pn-rewrite">
-          <div class="rw-diff">
-            <span class="old" id="rw-old">—</span>
-            <span class="arr">→</span>
-            <span class="new" id="rw-new">— <small>/100</small></span>
-            <span class="delta" id="rw-delta"></span>
-          </div>
-          <div id="rw-section-title">📊 循环记录</div>
-          <div class="rw-timeline" id="rw-timeline"><span style="font-size:12px;color:var(--text-dim);opacity:.5">暂无记录</span></div>
+        <div class="p" id="pn-rw">
+          <div id="rw-body"><div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:20px">评审后查看改写建议。</div></div>
         </div>
       </div>
     </div>
@@ -193,14 +162,9 @@ body{font:14px/1.6 -apple-system,sans-serif;background:var(--bg);color:var(--tex
     <span>字数 <strong id="statWords">0</strong></span>
     <span>空隙 <strong id="statGaps">0</strong></span>
     <span class="spacer"></span>
-    <span id="statSave">就绪</span>
   </div>
 </div>
 <script>
-// ═══════════════════════════
-//  引擎（简版）
-// ═══════════════════════════
-
 const SAMPLE = `# 咖啡厅重逢
 
 春天的一个工作日的下午，咖啡店外下着淅淅沥沥的小雨。
@@ -214,10 +178,6 @@ const SAMPLE = `# 咖啡厅重逢
 他打开手机相册里那个常打开的星标相簿，又翻到了她的那张照片。
 
 那是他存了十年的照片。
-
-他打开了手机日记本，随手写下几句话：
-
-> 她更成熟了，更好看了。
 
 他看着窗外时下时停的雨。透过去，他看到了十年前自己在雨中见过的她的背影。
 
@@ -253,23 +213,27 @@ const RE = {
   dialogC: /[」』"]/,
   trans: /(不知不觉|恍然|猛然|突然).{0,6}(间|地)|回过神来/,
   act: /推开|走进|走出|坐下|站起|转身|拿起|放下|打开|关上|递|接|碰|触|擦|抹|伸|拉|走|站|坐/,
+  emotion: /(欣喜|悲伤|愤怒|尴尬|开心|难过|激动|焦虑|平静|紧张|兴奋|失望|沮丧|羞怯|沉重|胆怯|燥热)地/,
+  stateEnd: /忘不了|还没|不$|…|……|突然/,
 };
 
 function analyze(text) {
   const lines = text.split('\n');
   const gaps = [];
-  let act = 0, dia = 0;
+  let act = 0, dia = 0, emotionHits = [];
   for (let i = 0; i < lines.length; i++) {
     const s = lines[i].trim();
     if (!s) continue;
     const ln = i + 1;
-    if (RE.time.test(s)) gaps.push({ type:'时间跳跃', line:ln, score:3 });
+    if (RE.time.test(s)) gaps.push({ type:'timeJump', label:'时间跳跃', line:ln, score:3 });
     if (RE.dialog.test(s)) {
       dia++;
       for (let j = i - 1; j >= Math.max(0, i - 6); j--) {
         const p = lines[j].trim();
         if (!p) continue;
-        if (RE.dialogC.test(p) && !RE.act.test(s)) gaps.push({ type:'对话间隙', line:ln, score:2 });
+        if (RE.dialogC.test(p) && !RE.act.test(s)) {
+          gaps.push({ type:'dialogGap', label:'对话间隙', line:ln, score:2 });
+        }
         break;
       }
     }
@@ -278,49 +242,56 @@ function analyze(text) {
       for (let j = i - 1; j >= Math.max(0, i - 6); j--) {
         const p = lines[j].trim();
         if (!p) continue;
-        if (RE.act.test(p)) gaps.push({ type:'动作空隙', line:ln, score:3 });
+        if (RE.act.test(p)) gaps.push({ type:'actionGap', label:'动作空隙', line:ln, score:3 });
         break;
       }
     }
-    if (RE.trans.test(s)) gaps.push({ type:'过渡压缩', line:ln, score:2 });
+    if (RE.trans.test(s)) gaps.push({ type:'transGap', label:'过渡压缩', line:ln, score:2 });
+    const em = s.match(RE.emotion);
+    if (em) emotionHits.push({ line:ln, text: s.slice(0, 40), word: em[0] });
   }
   const total = lines.filter(l => l.trim()).length;
   const actPct = total ? Math.round((act / total) * 100) : 0;
   const styles = [
-    { name:'对话→动作', score:Math.min(100, actPct * 2), tip:'用动作替代对话' },
-    { name:'状态句结尾', score:/忘不了|还没|不$|…/.test(lines.slice(-3).join('')) ? 100 : 30, tip:'停在紧张时刻' },
-    { name:'半秒钟密度', score:Math.min(100, gaps.length * 20), tip:'发现动作空隙' },
+    { name:'对话→动作', score:Math.min(100, actPct * 2) },
+    { name:'状态句结尾', score:RE.stateEnd.test(lines.slice(-3).join('')) ? 100 : 30 },
+    { name:'半秒钟密度', score:Math.min(100, gaps.length * 20) },
   ];
   const avg = Math.round(styles.reduce((s,st) => s+st.score, 0) / styles.length);
-  return { gaps, styles, avgScore:avg, stats:{actionLines:act, dialogLines:dia} };
+  return { gaps, styles, avgScore:avg, emotionHits, stats:{act,dia} };
 }
 
 function genSits(gaps) {
   const t = {
-    timeJump: g => `在 L${g.line} 跳过了这段时间。房间里有什么声音？光线有变化吗？`,
-    dialogGap: g => `L${g.line} 对白之间有一段沉默。说话的人开口前做了什么？吞咽了一下？`,
-    actionGap: g => `L${g.line} 两个动作之间缺少过渡。角色的手在哪？呼吸节奏怎样？`,
-    transitionGap: g => `L${g.line} 时间被压缩了。把它展开，让读者体验每一秒。`,
+    timeJump: g => `在 L${g.line} 跳过了这段时间。\n房间里有什么声音？光线有变化吗？角色在这段时间里做了什么？`,
+    dialogGap: g => `L${g.line} 对白之间有一段沉默。\n说话的人在开口前做了什么？吞咽了一下？看向了别处？沉默不是空白——它是角色正在处理情绪的物理时间。`,
+    actionGap: g => `L${g.line} 两个动作之间缺少过渡。\n第一个动作结束时，角色的手在哪？呼吸节奏怎样？半秒钟——够一个人改变主意，也够一个人下定决心。`,
+    transGap: g => `L${g.line} 时间被压缩了。\n把它展开，让读者体验每一秒——发生了什么细节？`,
   };
-  return gaps.filter(g => g.score >= 2).slice(0,3).map(g => (t[g.type]||(()=>''))(g)).filter(Boolean);
+  return gaps.filter(g => g.score >= 2).map(g => ({ ...g, guide: (t[g.type]||(()=>''))(g) }));
 }
 
-// ═══════════════════════════
 // ═══════════════════════════
 //  UI
 // ═══════════════════════════
 
 const $ = id => document.getElementById(id);
-const LINE_H = 1.8 * 14, PAD = 14;
-let _rwHistory = [];
-let _rfIdx = 0, _rfGuides = [];
+const LH = 1.8 * 14, PD = 14;
+
+function jumpto(line) {
+  const ta = $('editor');
+  const lines = ta.value.split('\n');
+  let pos = 0;
+  for (let i = 0; i < Math.min(line - 1, lines.length); i++) pos += lines[i].length + 1;
+  ta.focus(); ta.setSelectionRange(pos, pos); ta.scrollTop = (line - 1) * LH - 60;
+}
 
 function onEdit() {
   $('statWords').textContent = $('editor').value.length;
   $('gap-markers').innerHTML = '';
 }
 
-function updateGapMarkers(gaps) {
+function updateMarkers(gaps) {
   const c = $('gap-markers');
   c.innerHTML = '';
   if (!gaps.length) return;
@@ -331,33 +302,21 @@ function updateGapMarkers(gaps) {
   }
   for (const k in bl) {
     const e = bl[k];
-    const dot = document.createElement('div');
-    dot.className = 'gap-dot s' + e.best;
-    dot.style.top = (PAD + (e.line - 1) * LINE_H + 4) + 'px';
-    dot.title = 'L' + e.line;
-    dot.addEventListener('click', () => {
-      const ta = $('editor');
-      const lines = ta.value.split('\n');
-      let pos = 0;
-      for (let i = 0; i < Math.min(e.line - 1, lines.length); i++) pos += lines[i].length + 1;
-      ta.focus(); ta.setSelectionRange(pos, pos); ta.scrollTop = (e.line - 1) * LINE_H - 60;
-    });
-    c.appendChild(dot);
+    const d = document.createElement('div');
+    d.className = 'gd s' + e.best;
+    d.style.top = (PD + (e.line - 1) * LH + 4) + 'px';
+    d.addEventListener('click', () => jumpto(e.line));
+    c.appendChild(d);
   }
 }
 
 function switchTab(name) {
-  document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  document.querySelectorAll('#panels .panel').forEach(p => p.classList.toggle('active', p.id === 'pn-' + name));
-  $('r3Badge').className = 'badge ' + name;
-  $('r3Badge').textContent = name.charAt(0).toUpperCase() + name.slice(1);
-}
-
-function nextReflect() {
-  if (!_rfGuides.length) return;
-  _rfIdx = (_rfIdx + 1) % _rfGuides.length;
-  $('rf-guide').textContent = _rfGuides[_rfIdx];
-  $('rf-idx').textContent = (_rfIdx + 1) + ' / ' + _rfGuides.length;
+  document.querySelectorAll('#tabs .t').forEach(t => t.classList.toggle('act', t.dataset.tab === name));
+  document.querySelectorAll('#ps .p').forEach(p => p.classList.toggle('act', p.id === 'pn-' + name[0]));
+  const bd = $('r3bd');
+  const map = { review:'rv', reflect:'rf', rewrite:'rw' };
+  bd.className = 'bd ' + (map[name] || 'rv');
+  bd.textContent = name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 function runReview() {
@@ -365,57 +324,85 @@ function runReview() {
   if (!text.trim()) return;
   const r = analyze(text);
   $('statGaps').textContent = r.gaps.length;
-  $('gapCount').textContent = r.gaps.length;
-  $('r3Cycle').textContent = _rwHistory.length + 1;
-  $('r3Score').textContent = r.avgScore;
-  updateGapMarkers(r.gaps);
+  $('gapCnt').textContent = r.gaps.length;
+  $('r3sc').textContent = r.avgScore;
+  updateMarkers(r.gaps);
 
-  // Review 看板
+  // Review panel
   let h = '';
   if (r.gaps.length) {
-    h += '<div class="rv-gaps">';
+    h += '<h4>空隙</h4><div class="rg">';
     const d = {3:'🟢',2:'🟡',1:'🔴'};
-    for (const g of r.gaps.slice(0, 10)) h += `<div class="rv-gap"><span>${d[g.score]}</span><span class="t">${g.type}</span><span class="l">L${g.line}</span></div>`;
+    for (const g of r.gaps.slice(0, 10)) h += `<div class="ri" onclick="jumpto(${g.line})"><span>${d[g.score]}</span><span class="ty">${g.label}</span><span class="ln">L${g.line}</span></div>`;
     h += '</div>';
   }
   if (r.styles.length) {
-    h += '<div class="rv-styles">';
+    h += '<h4 style="margin-top:8px">风格</h4><div class="rs">';
     for (const s of r.styles) {
-      const cls = s.score >= 70 ? 'good' : s.score >= 40 ? 'ok' : 'bad';
-      h += `<div class="rv-style"><span class="lb">${s.name}</span><div class="bar"><div class="fill ${cls}" style="width:${s.score}%"></div></div><span class="sc">${s.score}</span></div>`;
+      const cls = s.score >= 70 ? 'g' : s.score >= 40 ? 'o' : 'b';
+      h += `<div class="rsi"><span class="lb">${s.name}</span><div class="bar"><div class="f ${cls}" style="width:${s.score}%"></div></div><span class="sc">${s.score}</span></div>`;
     }
     h += '</div>';
   }
-  $('rv-content').innerHTML = h || '<div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">无数据</div>';
-  $('rv-total').innerHTML = r.avgScore + ' <small>/100</small>';
+  $('rv-body').innerHTML = h || '<div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">无数据</div>';
+  $('total').innerHTML = r.avgScore + ' <small>/100</small>';
 
-  // Reflect 看板
-  _rfGuides = genSits(r.gaps);
-  _rfIdx = 0;
-  $('rf-guide').textContent = _rfGuides.length ? _rfGuides[0] : '当前未检测到引导。';
-  $('rf-idx').textContent = _rfGuides.length ? '1 / ' + _rfGuides.length : '0 / 0';
+  // Reflect panel: each gap = "here's something to write"
+  const sits = genSits(r.gaps);
+  let rf = '<h4>可写位置</h4><div class="rf-list">';
+  for (const s of sits) {
+    rf += `<div class="rf-card">
+      <div class="loc">L${s.line} · ${s.label}</div>
+      <div class="guide">${s.guide}</div>
+      <button class="btn" onclick="jumpto(${s.line}); switchTab('reflect')">✎ 写在这里</button>
+    </div>`;
+  }
+  rf += '</div>';
+  $('rf-body').innerHTML = sits.length ? rf : '<div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">暂无识别到的可写位置。</div>';
 
-  // Rewrite 看板
-  const prev = _rwHistory.length ? _rwHistory[_rwHistory.length - 1].score : null;
-  _rwHistory.push({ score: r.avgScore, gaps: r.gaps.length });
-  $('rw-old').textContent = prev !== null ? prev : '—';
-  $('rw-new').innerHTML = r.avgScore + ' <small>/100</small>';
-  const delta = prev !== null ? r.avgScore - prev : 0;
-  const deltaEl = $('rw-delta');
-  deltaEl.textContent = delta > 0 ? '+' + delta : delta < 0 ? '' + delta : '';
-  deltaEl.className = 'delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
+  // Rewrite panel: actionable suggestions based on style issues
+  let rw = '<h4>改写建议</h4><div class="rw-list">';
+  let found = false;
 
-  const tl = $('rw-timeline');
-  tl.innerHTML = _rwHistory.map((h, i) => {
-    const isLast = i === _rwHistory.length - 1;
-    return `<div class="rw-tl-entry"><span class="dot ${isLast ? 'cur' : 'done'}"></span><span class="rd">第${i+1}轮</span><span class="ds">${h.gaps} 空隙</span><span class="sc">${h.score}</span></div>`;
-  }).join('');
+  // emotion label suggestions
+  for (const e of r.emotionHits) {
+    found = true;
+    rw += `<div class="rw-card">
+      <div class="loc">L${e.line} · 情绪标签</div>
+      <div class="orig">"${e.text}"</div>
+      <div class="sug">用身体动作替代「${e.word}」：试试删除这个副词，让读者从动作中感受情绪。</div>
+      <button class="btn" onclick="jumpto(${e.line}); switchTab('rewrite')">✎ 定位到此处</button>
+    </div>`;
+  }
+
+  // state ending suggestion
+  const last3 = text.split('\n').slice(-3).filter(l => l.trim()).join('');
+  if (!RE.stateEnd.test(last3)) {
+    found = true;
+    rw += `<div class="rw-card">
+      <div class="loc">结尾 · 状态句</div>
+      <div class="sug">结尾落在情节推进上（${last3.slice(0, 30)}）。试试停在更紧张的时刻——用一个未化解的动作或感受收束。</div>
+      <button class="btn" onclick="jumpto(Math.max(1, text.split('\\n').length)); switchTab('rewrite')">✎ 定位到结尾</button>
+    </div>`;
+  }
+
+  // dialog→action suggestion
+  const actPct = r.stats.act / Math.max(r.stats.act + r.stats.dia, 1);
+  if (actPct < 0.4) {
+    found = true;
+    rw += `<div class="rw-card">
+      <div class="loc">全文 · 对话偏多</div>
+      <div class="sug">对话占比偏高（动作 ${r.stats.act} 行 / 对话 ${r.stats.dia} 行）。找一处纯对白段落，在角色说话之间插入一个身体动作。</div>
+    </div>`;
+  }
+
+  rw += '</div>';
+  $('rw-body').innerHTML = found ? rw : '<div style="font-size:12px;color:var(--text-dim);opacity:.5;text-align:center;padding:12px">暂无改写建议。</div>';
 }
 
 function loadSample() {
   $('editor').value = SAMPLE;
   onEdit();
-  _rwHistory = [];
   runReview();
 }
 
