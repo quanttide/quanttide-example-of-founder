@@ -1,26 +1,46 @@
 #!/usr/bin/env python3
 """
-实验 1.1.3: 从 memory 中识别情境
+实验 1.1.3: 从 memory 中识别情境 (LLM 版)
 
-用法: python3 extract.py <memory_dir> [--output <output_dir>]
+用法: python3 extract.py [memory_dir] [--output <dir>]
+环境变量: DEEPSEEK_API_KEY
 """
 
-import re
-import sys
 import os
+import sys
+import json
 import yaml
 from pathlib import Path
-from datetime import datetime
 
-SITUATION_SCHEMA_PATH = Path(__file__).parent / "situation.yaml"
+from openai import OpenAI
+
+SYSTEM_PROMPT = """你是一个认知抽取助手。从用户的日记/笔记中识别"情境"。
+
+情境定义：一段连续的认知活动单元，包含时间、地点、参与者、活动、情绪状态。
+
+输出 JSON 数组，每个元素格式：
+{
+  "id": "唯一标识",
+  "time": {"raw": "原文时间表述", "inferred_date": "推断日期 YYYY-MM-DD"},
+  "location": "地点或 null",
+  "participants": ["参与者列表"],
+  "activity": "活动描述（20字以内概括）",
+  "mood": {"raw": "情绪关键词或 null", "valence": -3到3的整数, "arousal": 0到5的整数}
+}
+
+规则：
+- 严格按原文信息输出，不编造
+- 可推断的补充（如日期从文件名来）在 inferred_date 中体现
+- 没有明确信息的字段设为 null 或空列表
+- 一条文本可能包含多个情境，分别输出
+- 输出纯 JSON，不要 markdown 包裹"""
 
 
-def load_memory_files(memory_dir):
-    """加载所有 memory 文件路径"""
-    memory_dir = Path(memory_dir)
+def load_memory_files(data_dir):
+    data_dir = Path(data_dir)
     files = []
     for ext in ["*.md"]:
-        for f in sorted(memory_dir.rglob(ext)):
+        for f in sorted(data_dir.rglob(ext)):
             if f.name in ("README.md", "AGENTS.md", "CHANGELOG.md"):
                 continue
             files.append(f)
@@ -28,160 +48,125 @@ def load_memory_files(memory_dir):
 
 
 def infer_date_from_filename(filepath):
-    """从文件名推断日期 (journal/YYYY-MM-DD.md -> 日期)"""
+    import re
     m = re.search(r"(\d{4}-\d{2}-\d{2})", str(filepath))
-    if m:
-        return m.group(1)
-    return None
+    return m.group(1) if m else None
 
 
-def detect_time(text):
-    """检测时间表述"""
-    patterns = [
-        (r"今天(上午|下午|晚上|中午|早上|傍晚|凌晨)?", lambda m: f"今天{m.group(1) or ''}"),
-        (r"明天(上午|下午|晚上|中午|早上)?", lambda m: f"明天{m.group(1) or ''}"),
-        (r"(上午|下午|晚上|中午|早上|凌晨)\s*\d+[点时]", lambda m: m.group(0)),
-        (r"\d{1,2}:\d{2}", lambda m: m.group(0)),
-    ]
-    for pattern, formatter in patterns:
-        m = re.search(pattern, text)
-        if m:
-            return formatter(m)
-    return None
-
-
-def detect_mood(text):
-    """检测情绪表述"""
-    positive = ["高兴", "开心", "不错", "很好", "满意", "有信心", "调节过来", "轻松"]
-    negative = ["不安", "担心", "焦虑", "疲惫", "累", "冲击", "压力", "困难", "烦", "没信心"]
-    high_arousal = ["冲击", "紧张", "兴奋", "急", "快速"]
-    low_arousal = ["休息", "睡觉", "放松", "缓", "消化"]
-
-    found_valence = 0
-    found_arousal = 1
-    raw_terms = []
-
-    for w in positive:
-        if w in text:
-            found_valence += 1
-            raw_terms.append(w)
-    for w in negative:
-        if w in text:
-            found_valence -= 1
-            raw_terms.append(w)
-
-    for w in high_arousal:
-        if w in text:
-            found_arousal += 2
-            raw_terms.append(w)
-    for w in low_arousal:
-        if w in text:
-            found_arousal = max(0, found_arousal - 1)
-            raw_terms.append(w)
-
-    found_valence = max(-3, min(3, found_valence))
-    found_arousal = max(0, min(5, found_arousal))
-
-    return {
-        "raw": "、".join(set(raw_terms)) if raw_terms else None,
-        "valence": found_valence,
-        "arousal": found_arousal,
-    }
-
-
-def extract_situations(filepath, inferred_date):
-    """从单个文件中提取情境"""
-    text = filepath.read_text(encoding="utf-8")
-    paragraphs = re.split(r"\n\s*\n", text.strip())
-
-    situations = []
-    for pi, para in enumerate(paragraphs):
-        para = para.strip()
-        if not para or len(para) < 10:
+def chunk_text(text, max_chars=2000):
+    """按段落分块，每块不超过 max_chars"""
+    paragraphs = text.strip().split("\n\n")
+    chunks = []
+    current = []
+    current_len = 0
+    for p in paragraphs:
+        p = p.strip()
+        if not p:
             continue
+        if current_len + len(p) > max_chars and current:
+            chunks.append("\n\n".join(current))
+            current = []
+            current_len = 0
+        current.append(p)
+        current_len += len(p)
+    if current:
+        chunks.append("\n\n".join(current))
+    return chunks
 
-        lines = para.split("\n")
-        mood = detect_mood(para)
-        time_raw = detect_time(para)
 
-        situation = {
-            "id": f"s-{inferred_date}-{pi+1:03d}" if inferred_date else f"s-{pi+1:03d}",
-            "source": {
-                "file": str(filepath),
-                "line_start": 1,
-                "line_end": 1 + len(lines),
-            },
-            "time": {
-                "raw": time_raw,
-                "inferred_date": inferred_date,
-            },
-            "location": None,
-            "participants": [],
-            "activity": para[:80] + ("..." if len(para) > 80 else ""),
-            "mood": mood,
-            "_raw": para,
-        }
+def extract_with_llm(text, inferred_date, client, model="deepseek-chat"):
+    """调用 LLM 从文本中抽取情境"""
+    user_prompt = f"""从以下文本中识别情境。日期推断基准: {inferred_date or "未知"}
 
-        # 简单参与者检测
-        people_patterns = [
-            r"(?:团队|大家|同事|合伙人|秘书|总裁|技术|财务|人事|秘书长|副秘书长)",
-            r"(?:我|我们|他们|他|她)",
-        ]
-        found_people = set()
-        for pat in people_patterns:
-            for m in re.finditer(pat, para):
-                found_people.add(m.group(0))
-        if found_people:
-            situation["participants"] = sorted(found_people)
+文本：
+{text}
+"""
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1,
+            max_tokens=4096,
+        )
+        content = resp.choices[0].message.content.strip()
+        data = json.loads(content)
+        situations = data if isinstance(data, list) else data.get("situations", [])
+        return situations
+    except Exception as e:
+        print(f"  LLM 调用失败: {e}", file=sys.stderr)
+        return []
 
-        # 地点检测
-        loc_patterns = [
-            r"(?:在|到|去)(\w+(?:办公室|会议室|家|实验室|公司|云|现场))",
-            r"(?:\w+(?:办公室|会议室|家|实验室|公司))",
-        ]
-        for pat in loc_patterns:
-            m = re.search(pat, para)
-            if m:
-                situation["location"] = m.group(0) if m.lastindex else m.group(0)
-                break
 
-        situations.append(situation)
-
-    return situations
+def build_source_ref(filepath, base_dir, chunk_idx, chunk_count):
+    try:
+        rel = str(Path(filepath).relative_to(base_dir))
+    except ValueError:
+        rel = str(filepath)
+    return {
+        "file": rel,
+        "chunk": f"{chunk_idx + 1}/{chunk_count}",
+    }
 
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="从 memory 中识别情境")
-    parser.add_argument("memory_dir", nargs="?", default=os.path.join(os.path.dirname(__file__), "../../data"), help="memory 目录路径 (默认: ../../data)")
-    parser.add_argument("--output", "-o", default="output", help="输出目录 (默认: output)")
+    parser = argparse.ArgumentParser(description="LLM 从 memory 中识别情境")
+    parser.add_argument("memory_dir", nargs="?",
+                        default=os.path.join(os.path.dirname(__file__), "../../data"),
+                        help="memory 目录路径")
+    parser.add_argument("--output", "-o", default="output", help="输出目录")
+    parser.add_argument("--model", default="deepseek-chat", help="模型名")
     args = parser.parse_args()
 
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        print("错误: 请设置 DEEPSEEK_API_KEY 环境变量", file=sys.stderr)
+        sys.exit(1)
+
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     files = load_memory_files(args.memory_dir)
-    print(f"找到 {len(files)} 个 memory 文件")
+    print(f"找到 {len(files)} 个 memory 文件\n")
 
     all_situations = []
+    seq = 0
+
     for f in files:
         inferred_date = infer_date_from_filename(f)
-        situations = extract_situations(f, inferred_date)
-        all_situations.extend(situations)
-        print(f"  {f.relative_to(args.memory_dir) if args.memory_dir else f.name}: {len(situations)} 个情境")
+        text = f.read_text(encoding="utf-8")
+        chunks = chunk_text(text)
+        file_situations = []
 
-    # 清理 _raw 字段，输出完整结果
-    clean = []
-    for s in all_situations:
-        s.pop("_raw", None)
-        clean.append(s)
+        rel_path = f.relative_to(args.memory_dir) if args.memory_dir else f.name
+        print(f"  {rel_path} ({len(chunks)} 块)...")
+
+        for ci, chunk in enumerate(chunks):
+            situations = extract_with_llm(chunk, inferred_date, client, args.model)
+            for s in situations:
+                seq += 1
+                date_part = inferred_date or "unknown"
+                s["id"] = f"s-{date_part}-{seq:03d}"
+                s["source"] = build_source_ref(f, args.memory_dir, ci, len(chunks))
+                if inferred_date and not s.get("time", {}).get("inferred_date"):
+                    s.setdefault("time", {})["inferred_date"] = inferred_date
+            file_situations.extend(situations)
+            print(f"    块 {ci+1}/{len(chunks)}: {len(situations)} 个情境")
+
+        all_situations.extend(file_situations)
+        print(f"  → 共 {len(file_situations)} 个情境\n")
 
     output_file = output_dir / "situations.yaml"
     with open(output_file, "w", encoding="utf-8") as f:
-        yaml.dump({"situations": clean}, f, allow_unicode=True, sort_keys=False)
-    print(f"\n结果已输出: {output_file}")
-    print(f"共识别 {len(clean)} 个情境")
+        yaml.dump({"situations": all_situations}, f, allow_unicode=True, sort_keys=False)
+    print(f"结果已输出: {output_file}")
+    print(f"共识别 {len(all_situations)} 个情境 (来自 {len(files)} 个文件)")
 
 
 if __name__ == "__main__":
