@@ -58,7 +58,7 @@ def get_journal_text(repo_path, max_commits=200):
             journal_files.add(line)
 
     texts = {}
-    for f in sorted(journal_files)[-3:]:
+    for f in sorted(journal_files)[-10:]:
         r = subprocess.run(
             ["git", "-C", repo_path, "show", f"HEAD:{f}"],
             capture_output=True, text=True, timeout=5
@@ -122,7 +122,9 @@ def main():
     print(f"分段: {len(all_segments)} 段")
 
     results = []
-    for seg in all_segments:
+    total = len(all_segments)
+    for idx, seg in enumerate(all_segments, 1):
+        print(f"\r  处理中: {idx}/{total} ({idx*100//total}%)", end="", file=sys.stderr)
         r = client.chat.completions.create(
             model=args.model,
             messages=[
@@ -142,6 +144,7 @@ def main():
     total_ideas = sum(len(r.get("ideas", [])) for r in results)
     total_situations = sum(1 for r in results if r.get("situation"))
 
+    print(f"\r  处理完成: {total}/{total} (100%)", file=sys.stderr)
     print(f"\n结果:")
     print(f"  有情境的段落: {total_situations}/{len(results)}")
     print(f"  意图总数: {total_intentions}")

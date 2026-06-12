@@ -98,7 +98,9 @@ def main():
     fuzzy = []  # (content, step, domain)
     skip = []
 
-    for p in plans:
+    total_plans = len(plans)
+    for pi, p in enumerate(plans, 1):
+        print(f"\r  判断中: {pi}/{total_plans} ({pi*100//total_plans}%)", end="", file=sys.stderr)
         prompt = JUDGE_PROMPT.format(situation=p["activity"], intent=p["content"])
         r = client.chat.completions.create(
             model=args.model,
@@ -126,6 +128,7 @@ def main():
     for text, step, domain in fuzzy:
         groups[domain].append((text, step))
 
+    print(f"\r  判断完成: {total_plans}/{total_plans} (100%)", file=sys.stderr)
     print(f"  可执行: {len(ready)}")
     print(f"  模糊方向: {len(fuzzy)}")
     for domain, items in sorted(groups.items()):
