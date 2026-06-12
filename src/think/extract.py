@@ -121,9 +121,27 @@ def main():
 
     print(f"分段: {len(all_segments)} 段")
 
-    results = []
+    # 断点续传：逐段写入，每条结果独立保存
+    done_file = output_dir / "_done.txt"
+    done_set = set()
+    if done_file.exists():
+        with open(done_file) as f:
+            done_set = set(line.strip() for line in f if line.strip())
+        print(f"\n  发现断点: 已处理 {len(done_set)}/{len(all_segments)} 段")
+
+    out_file = output_dir / "cognition.yaml"
+    existing = []
+    if out_file.exists():
+        with open(out_file, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+            existing = data.get("segments", [])
+
     total = len(all_segments)
+    new_results = []
     for idx, seg in enumerate(all_segments, 1):
+        seg_id = f"{idx:03d}"
+        if seg_id in done_set:
+            continue
         print(f"\r  处理中: {idx}/{total} ({idx*100//total}%)", end="", file=sys.stderr)
         r = client.chat.completions.create(
             model=args.model,
@@ -137,33 +155,36 @@ def main():
         data = json.loads(r.choices[0].message.content.strip())
         data["_source"] = seg["file"]
         data["_raw"] = seg["text"][:100]
-        results.append(data)
+        new_results.append(data)
+        # 立即保存
+        with open(done_file, "a") as f:
+            f.write(f"{seg_id}\n")
+        with open(out_file, "w", encoding="utf-8") as f:
+            yaml.dump({"segments": existing + new_results}, f, allow_unicode=True, sort_keys=False)
+
+    done_file.unlink(missing_ok=True)
+    all_results = existing + new_results
 
     # 统计
-    total_intentions = sum(len(r.get("intentions", [])) for r in results)
-    total_ideas = sum(len(r.get("ideas", [])) for r in results)
-    total_situations = sum(1 for r in results if r.get("situation"))
+    total_intentions = sum(len(r.get("intentions", [])) for r in all_results)
+    total_ideas = sum(len(r.get("ideas", [])) for r in all_results)
+    total_situations = sum(1 for r in all_results if r.get("situation"))
 
     print(f"\r  处理完成: {total}/{total} (100%)", file=sys.stderr)
     print(f"\n结果:")
-    print(f"  有情境的段落: {total_situations}/{len(results)}")
+    print(f"  有情境的段落: {total_situations}/{len(all_results)}")
     print(f"  意图总数: {total_intentions}")
     print(f"  想法总数: {total_ideas}")
-
-    # 输出
-    out = output_dir / "cognition.yaml"
-    with open(out, "w", encoding="utf-8") as f:
-        yaml.dump({"segments": results}, f, allow_unicode=True, sort_keys=False)
-    print(f"  已保存: {out}")
+    print(f"  已保存: {out_file}")
 
     # 摘要展示
     print("\n意图清单:")
-    for r in results:
+    for r in all_results:
         for intent in r.get("intentions", []):
             print(f"  [{intent.get('type','')}] {intent.get('content','')[:50]}")
 
     print("\n想法清单:")
-    for r in results:
+    for r in all_results:
         for idea in r.get("ideas", []):
             print(f"  [{idea.get('type','')}] {idea.get('content','')[:50]}")
 
