@@ -1,172 +1,168 @@
 #!/usr/bin/env python3
 """
-实验 1.1.3: 从 memory 中识别情境 (LLM 版)
+认知提取 — 从 journal 中提取情境、意图、想法
 
-用法: python3 extract.py [memory_dir] [--output <dir>]
-环境变量: DEEPSEEK_API_KEY
+情境：认知发生的容器（时间/地点/参与者/活动/情绪）
+意图：行动导向（目标/动机/计划/承诺）
+想法：认知产出（洞察/假设/问题/类比）
 """
 
 import os
 import sys
 import json
 import yaml
+import subprocess
+import re
 from pathlib import Path
-
+from datetime import datetime
 from openai import OpenAI
 
-SYSTEM_PROMPT = """你是一个认知抽取助手。从用户的日记/笔记中识别"情境"。
+EXTRACT_PROMPT = """从以下日记段落中提取结构化认知要素。
 
-情境定义：一段连续的认知活动单元，包含时间、地点、参与者、活动、情绪状态。
-
-输出 JSON 数组，每个元素格式：
-{
-  "id": "唯一标识",
-  "time": {"raw": "原文时间表述", "inferred_date": "推断日期 YYYY-MM-DD"},
-  "location": "地点或 null",
-  "participants": ["参与者列表"],
-  "activity": "活动描述（20字以内概括）",
-  "mood": {"raw": "情绪关键词或 null", "valence": -3到3的整数, "arousal": 0到5的整数}
-}
+输出 JSON：
+{{
+  "situation": {{
+    "time": {{"raw": "时间表述或null", "inferred_date": "推断日期或null"}},
+    "location": "地点或null",
+    "participants": ["参与者列表"],
+    "activity": "活动概括（15字）",
+    "mood": {{"raw": "情绪词或null", "valence": -3~3, "arousal": 0~5}}
+  }},
+  "intentions": [
+    {{"type": "goal/motive/plan/commitment", "content": "意图原文"}}
+  ],
+  "ideas": [
+    {{"type": "insight/hypothesis/question/analogy", "content": "想法原文"}}
+  ]
+}}
 
 规则：
-- 严格按原文信息输出，不编造
-- 可推断的补充（如日期从文件名来）在 inferred_date 中体现
-- 没有明确信息的字段设为 null 或空列表
-- 一条文本可能包含多个情境，分别输出
-- 输出纯 JSON，不要 markdown 包裹"""
+- situation 从原文推断，不编造
+- intentions 只提取有行动导向的内容（想要/打算/决定/需要）
+- ideas 只提取认知产出（发现/想到/怀疑/感觉）
+- 如果某类不存在，输出空数组或null
+- 纯 JSON。"""
 
 
-def load_memory_files(data_dir):
-    data_dir = Path(data_dir)
-    files = []
-    for ext in ["*.md"]:
-        for f in sorted(data_dir.rglob(ext)):
-            if f.name in ("README.md", "AGENTS.md", "CHANGELOG.md"):
-                continue
-            files.append(f)
-    return files
+def get_journal_text(repo_path, max_commits=200):
+    result = subprocess.run(
+        ["git", "-C", repo_path, "-c", "core.quotepath=false",
+         "log", f"--max-count={max_commits}",
+         "--name-only", "--format=%H"],
+        capture_output=True, text=True
+    )
+    journal_files = set()
+    for line in result.stdout.strip().split("\n"):
+        line = line.strip()
+        if "/" in line and line.endswith(".md") and "journal" in line:
+            journal_files.add(line)
 
-
-def infer_date_from_filename(filepath):
-    import re
-    m = re.search(r"(\d{4}-\d{2}-\d{2})", str(filepath))
-    return m.group(1) if m else None
-
-
-def chunk_text(text, max_chars=2000):
-    """按段落分块，每块不超过 max_chars"""
-    paragraphs = text.strip().split("\n\n")
-    chunks = []
-    current = []
-    current_len = 0
-    for p in paragraphs:
-        p = p.strip()
-        if not p:
-            continue
-        if current_len + len(p) > max_chars and current:
-            chunks.append("\n\n".join(current))
-            current = []
-            current_len = 0
-        current.append(p)
-        current_len += len(p)
-    if current:
-        chunks.append("\n\n".join(current))
-    return chunks
-
-
-def extract_with_llm(text, inferred_date, client, model="deepseek-chat"):
-    """调用 LLM 从文本中抽取情境"""
-    user_prompt = f"""从以下文本中识别情境。日期推断基准: {inferred_date or "未知"}
-
-文本：
-{text}
-"""
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.1,
-            max_tokens=4096,
+    texts = {}
+    for f in sorted(journal_files)[-3:]:
+        r = subprocess.run(
+            ["git", "-C", repo_path, "show", f"HEAD:{f}"],
+            capture_output=True, text=True, timeout=5
         )
-        content = resp.choices[0].message.content.strip()
-        data = json.loads(content)
-        situations = data if isinstance(data, list) else data.get("situations", [])
-        return situations
-    except Exception as e:
-        print(f"  LLM 调用失败: {e}", file=sys.stderr)
-        return []
+        if r.returncode == 0 and r.stdout.strip():
+            texts[f] = r.stdout[:3000]
+    return texts
 
 
-def build_source_ref(filepath, base_dir, chunk_idx, chunk_count):
-    try:
-        rel = str(Path(filepath).relative_to(base_dir))
-    except ValueError:
-        rel = str(filepath)
-    return {
-        "file": rel,
-        "chunk": f"{chunk_idx + 1}/{chunk_count}",
-    }
+def segment_text(text):
+    segments = re.split(r"\n\s*\n", text.strip())
+    result = []
+    for s in segments:
+        s = s.strip()
+        if len(s) < 20 or len(s) > 500:
+            continue
+        if s.startswith("#"):
+            continue
+        result.append(s)
+    return result
 
 
 def main():
     import argparse
-
-    parser = argparse.ArgumentParser(description="LLM 从 memory 中识别情境")
-    parser.add_argument("memory_dir", nargs="?",
-                        default=os.path.join(os.path.dirname(__file__), "../../data"),
-                        help="memory 目录路径")
-    parser.add_argument("--output", "-o", default="output", help="输出目录")
-    parser.add_argument("--model", default="deepseek-chat", help="模型名")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--memory-path", default=os.path.join(os.path.dirname(__file__),
+                        "../../../../docs/memory"))
+    parser.add_argument("--output", "-o", default="output")
+    parser.add_argument("--model", default="deepseek-chat")
+    parser.add_argument("--date", default=None)
     args = parser.parse_args()
 
-    api_key = os.environ.get("DEEPSEEK_API_KEY")
-    if not api_key:
-        print("错误: 请设置 DEEPSEEK_API_KEY 环境变量", file=sys.stderr)
-        sys.exit(1)
-
-    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+    base_dir = Path(os.path.dirname(__file__))
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    files = load_memory_files(args.memory_dir)
-    print(f"找到 {len(files)} 个 memory 文件\n")
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        print("错误: 请设置 DEEPSEEK_API_KEY", file=sys.stderr); sys.exit(1)
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
-    all_situations = []
-    seq = 0
+    if args.date:
+        p = Path(args.memory_path) / "journal" / f"{args.date}.md"
+        alt = Path(args.memory_path) / "journal" / args.date[:4] / f"{args.date}.md"
+        texts = {}
+        for path in [p, alt]:
+            if path.exists():
+                texts[str(path)] = path.read_text(encoding="utf-8")[:4000]
+                break
+        if not texts:
+            print(f"未找到 {args.date}"); return
+    else:
+        texts = get_journal_text(args.memory_path)
 
-    for f in files:
-        inferred_date = infer_date_from_filename(f)
-        text = f.read_text(encoding="utf-8")
-        chunks = chunk_text(text)
-        file_situations = []
+    all_segments = []
+    for fname, text in texts.items():
+        segments = segment_text(text)
+        for seg in segments:
+            all_segments.append({"file": fname, "text": seg})
 
-        rel_path = f.relative_to(args.memory_dir) if args.memory_dir else f.name
-        print(f"  {rel_path} ({len(chunks)} 块)...")
+    print(f"分段: {len(all_segments)} 段")
 
-        for ci, chunk in enumerate(chunks):
-            situations = extract_with_llm(chunk, inferred_date, client, args.model)
-            for s in situations:
-                seq += 1
-                date_part = inferred_date or "unknown"
-                s["id"] = f"s-{date_part}-{seq:03d}"
-                s["source"] = build_source_ref(f, args.memory_dir, ci, len(chunks))
-                if inferred_date and not s.get("time", {}).get("inferred_date"):
-                    s.setdefault("time", {})["inferred_date"] = inferred_date
-            file_situations.extend(situations)
-            print(f"    块 {ci+1}/{len(chunks)}: {len(situations)} 个情境")
+    results = []
+    for seg in all_segments:
+        r = client.chat.completions.create(
+            model=args.model,
+            messages=[
+                {"role": "system", "content": EXTRACT_PROMPT},
+                {"role": "user", "content": seg["text"]},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.1, max_tokens=1024,
+        )
+        data = json.loads(r.choices[0].message.content.strip())
+        data["_source"] = seg["file"]
+        data["_raw"] = seg["text"][:100]
+        results.append(data)
 
-        all_situations.extend(file_situations)
-        print(f"  → 共 {len(file_situations)} 个情境\n")
+    # 统计
+    total_intentions = sum(len(r.get("intentions", [])) for r in results)
+    total_ideas = sum(len(r.get("ideas", [])) for r in results)
+    total_situations = sum(1 for r in results if r.get("situation"))
 
-    output_file = output_dir / "situations.yaml"
-    with open(output_file, "w", encoding="utf-8") as f:
-        yaml.dump({"situations": all_situations}, f, allow_unicode=True, sort_keys=False)
-    print(f"结果已输出: {output_file}")
-    print(f"共识别 {len(all_situations)} 个情境 (来自 {len(files)} 个文件)")
+    print(f"\n结果:")
+    print(f"  有情境的段落: {total_situations}/{len(results)}")
+    print(f"  意图总数: {total_intentions}")
+    print(f"  想法总数: {total_ideas}")
+
+    # 输出
+    out = output_dir / "cognition.yaml"
+    with open(out, "w", encoding="utf-8") as f:
+        yaml.dump({"segments": results}, f, allow_unicode=True, sort_keys=False)
+    print(f"  已保存: {out}")
+
+    # 摘要展示
+    print("\n意图清单:")
+    for r in results:
+        for intent in r.get("intentions", []):
+            print(f"  [{intent.get('type','')}] {intent.get('content','')[:50]}")
+
+    print("\n想法清单:")
+    for r in results:
+        for idea in r.get("ideas", []):
+            print(f"  [{idea.get('type','')}] {idea.get('content','')[:50]}")
 
 
 if __name__ == "__main__":
