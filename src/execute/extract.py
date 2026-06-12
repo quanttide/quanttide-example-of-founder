@@ -26,6 +26,7 @@ JUDGE_PROMPT = """判断以下意图是否是**可执行的TODO**。
 {{
   "verdict": "可执行/模糊方向/不可执行",
   "first_step": "如果是可执行，建议的第一步（15字）",
+  "domain": "领域标签（系统架构/小说创作/团队管理/工具链/实验验证/数据/方法论/其他）",
   "reason": "判断理由（10字）"
 }}
 纯 JSON。"""
@@ -68,7 +69,7 @@ def main():
 
     # LLM 判断每条的可执行性
     ready = []
-    fuzzy = []
+    fuzzy = []  # (text, step, domain)
     skip = []
 
     for p in plans:
@@ -84,16 +85,26 @@ def main():
         result = json.loads(r.choices[0].message.content.strip())
         verdict = result.get("verdict", "不可执行")
         step = result.get("first_step", "")
+        domain = result.get("domain", "其他")
         if verdict == "可执行":
             ready.append((p, step))
         elif verdict == "模糊方向":
-            fuzzy.append((p, step))
+            fuzzy.append((p, step, domain))
         else:
             skip.append(p)
 
     print(f"  可执行: {len(ready)}")
     print(f"  模糊方向: {len(fuzzy)}")
     print(f"  不可执行: {len(skip)}")
+
+    # 按领域分组
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for text, step, domain in fuzzy:
+        groups[domain].append((text, step))
+
+    for domain, items in sorted(groups.items()):
+        print(f"  {domain}: {len(items)} 条")
 
     # 生成 TODO.md
     todo_path = base_dir / "TODO.md"
@@ -112,35 +123,57 @@ def main():
         if not todo_path.exists():
             f.write("# TODO\n\n")
 
-        sections = [("可执行", ready), ("需分解", fuzzy)]
         has_new = False
-        for label, items in sections:
-            new_items = [t for t in items if t[0] not in existing]
-            if not new_items:
-                continue
+
+        # 可执行（无分组）
+        new_ready = [t for t in ready if t[0] not in existing]
+        if new_ready:
             if not has_new:
                 f.write(f"## {date_str}\n\n")
                 has_new = True
-            f.write(f"### {label}\n\n")
-            for text, step in new_items:
+            f.write("### 可执行\n\n")
+            for text, step in new_ready:
                 f.write(f"- [ ] {text}\n")
                 if step:
                     f.write(f"  第一步：{step}\n")
             f.write("\n")
-            new_count += len(new_items)
+            new_count += len(new_ready)
 
-    # 展示结果
+        # 需分解（按领域分组）
+        new_fuzzy = [(t, s, d) for t, s, d in fuzzy if t not in existing]
+        if new_fuzzy:
+            if not has_new:
+                f.write(f"## {date_str}\n\n")
+                has_new = True
+            f.write("### 需分解\n\n")
+            f.write("> 以下事项有方向但缺具体步骤，按领域分组。选择 1-2 个领域优先分解。\n\n")
+            groups = defaultdict(list)
+            for text, step, domain in new_fuzzy:
+                groups[domain].append((text, step))
+            for domain, items in sorted(groups.items()):
+                f.write(f"**{domain}**\n\n")
+                for text, step in items:
+                    f.write(f"- [ ] {text}\n")
+                    if step:
+                        f.write(f"  建议切入点：{step}\n")
+                f.write("\n")
+            new_count += len(new_fuzzy)
+
+    # 展示
     print(f"\n=== 可执行 ===")
     for text, step in ready:
-        print(f"  [ ] {text}")
-        if step:
-            print(f"       → {step}")
+        print(f"  [ ] {text}  → {step}")
 
-    print(f"\n=== 需分解 ===")
-    for text, step in fuzzy:
-        print(f"  [ ] {text}")
-        if step:
-            print(f"       → {step}")
+    print(f"\n=== 需分解（按领域）===")
+    groups = defaultdict(list)
+    for text, step, domain in fuzzy:
+        groups[domain].append((text, step))
+    for domain, items in sorted(groups.items()):
+        print(f"\n  【{domain}】")
+        for text, step in items:
+            print(f"    [ ] {text}")
+            if step:
+                print(f"        切入点：{step}")
 
     print(f"\n=== 不可执行（已跳过）===")
     for text in skip:
