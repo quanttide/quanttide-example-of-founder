@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-实验 4: 时间序列法 — 寻找认知与叙事相互影响的证据
-
-不再评分，改为从时间序列中发现具体的影响证据。
+实验: 周内关联分析 — 同一周的日记情绪与小说母题如何关联
 """
 
 import os
@@ -15,59 +13,44 @@ from datetime import datetime
 from collections import defaultdict
 from openai import OpenAI
 
-SCHEMA_PROMPT = """从以下日记内容中提取**情绪图式**。每条：
-- name: 情绪图式名（如"失败焦虑"）
-- emotion: 情绪标签（如"焦虑/欣慰/孤独/兴奋"）
+SCHEMA_PROMPT = """从日记内容中提取情绪图式。每条：
+- name: 图式名
+- emotion: 情绪标签
 - trigger: 触发情境（10字内）
 - valence: 愉悦度 -3~3
-- quote: 体现该情绪的原文片段（30字内）
+- quote: 原文片段（30字内）
+输出 JSON 数组。"""
 
-输出 JSON 数组。纯 JSON。"""
-
-MOTIF_PROMPT = """从以下小说片段中识别叙事母题。每条：
-- name: 母题名（如"雨天重逢"）
+MOTIF_PROMPT = """从小说片段中识别母题。每条：
+- name: 母题名
 - type: theme|image|plot|character
-- emotion_tag: 该母题携带的主导情绪（如"期待/苦涩/温暖/遗憾"），null 若无
-- quote: 体现该母题的原文片段（30字内）
+- emotion_tag: 主导情绪或null
+- quote: 原文片段（30字内）
+输出 JSON 数组。"""
 
-输出 JSON 数组。纯 JSON。"""
+WITHIN_WEEK_PROMPT = """以下是一周内创始人的日记情绪图式和小说叙事母题。
 
-EVIDENCE_PROMPT = """你是一名认知科学研究者。以下是连续两周的数据：
+{week_data}
 
-=== 第 W 周 ===
-日记情绪图式: {w_schemas}
-小说叙事母题: {w_motifs}
+请分析同一周内日记和小说之间的关系：
 
-=== 第 W+1 周 ===
-日记情绪图式: {w1_schemas}
-小说叙事母题: {w1_motifs}
+1. **情绪共鸣**：日记中的情绪图式与小说母题的情感基调是否一致？具体哪些条目对应？
+2. **主题映射**：日记中关切的主题是否在小说中以隐喻或变形的方式出现？
+3. **独特信号**：有哪些只出现在日记或只出现在小说中的情绪/主题？为什么？
+4. **整体判断**：这一周，日记和小说之间的关系是什么？（同频/互补/无关/冲突？）
 
-请寻找前一周影响后一周的证据。考虑以下 4 种路径：
-
-路径 A — 情绪延续（前一周日记情绪 → 后一周日记情绪）
-路径 B — 认知外溢（前一周日记情绪 → 后一周小说母题）
-路径 C — 叙事延续（前一周小说母题 → 后一周小说母题）
-路径 D — 叙事内化（前一周小说母题 → 后一周日记情绪）
-
-对每条路径，如果有证据则输出，无证据则跳过。
+为每个问题引用具体条目名和原文片段作为依据。
 
 输出 JSON：
 {{
-  "evidence": [
-    {{
-      "path": "A/B/C/D",
-      "from_week": "W",
-      "to_week": "W+1",
-      "from_item": "前一周的具体条目名",
-      "to_item": "后一周的具体条目名",
-      "match_type": "情绪一致/主题相关/触发情境相似/结构对应",
-      "strength": "强/中/弱",
-      "reason": "具体说明依据（30字内）"
-    }}
-  ]
+  "week": "{week}",
+  "emotional_resonance": [{{"diary_item": "", "fiction_item": "", "connection": ""}}],
+  "theme_mapping": [{{"diary_theme": "", "fiction_motif": "", "how_mapped": ""}}],
+  "unique_signals": {{"diary_only": [], "fiction_only": []}},
+  "overall_judgment": "同频/互补/无关/冲突",
+  "summary": "一句话总结"
 }}
-
-纯 JSON，没有证据时输出 {{"evidence": []}}。"""
+纯 JSON。"""
 
 
 def git_show_file(repo_path, commit_hash, filepath):
@@ -85,7 +68,8 @@ def git_show_file(repo_path, commit_hash, filepath):
 
 def get_daily_content(repo_path, max_commits=1000):
     result = subprocess.run(
-        ["git", "-C", repo_path, "log", f"--max-count={max_commits}",
+        ["git", "-C", repo_path, "-c", "core.quotepath=false",
+         "log", f"--max-count={max_commits}",
          "--format=%H|%ai|%s", "--name-only"],
         capture_output=True, text=True
     )
@@ -110,9 +94,8 @@ def get_daily_content(repo_path, max_commits=1000):
                 content = git_show_file(repo_path, c["hash"], f)
                 if content:
                     texts.append(content[:2000])
-        combined = "\n\n".join(texts)
-        if combined:
-            daily[date] = combined
+        if texts:
+            daily[date] = "\n\n".join(texts)
     return daily
 
 
@@ -122,7 +105,7 @@ def iso_week(date_str):
     return f"{iso[0]}-W{iso[1]:02d}"
 
 
-def call_llm(client, prompt, text, model="deepseek-chat", max_tokens=1024):
+def call_llm(client, prompt, text, model="deepseek-chat", max_tokens=2048):
     try:
         resp = client.chat.completions.create(
             model=model,
@@ -139,13 +122,28 @@ def call_llm(client, prompt, text, model="deepseek-chat", max_tokens=1024):
 
 
 def extract_elements(client, prompt, text, model):
-    result = call_llm(client, prompt, text, model)
+    result = call_llm(client, prompt, text, model, max_tokens=1024)
     if isinstance(result, list):
         return result
     for key in ["elements", "schemas", "motifs", "items", "results"]:
         if key in result and isinstance(result[key], list):
             return result[key]
     return []
+
+
+def format_week(week, schemas, motifs):
+    lines = [f"=== 第 {week} 周 ==="]
+    if schemas:
+        lines.append("日记情绪图式:")
+        for s in schemas:
+            q = s.get("quote", "")[:30]
+            lines.append(f"  - {s.get('name','')} (emotion={s.get('emotion','')}, valence={s.get('valence','')}) trigger={s.get('trigger','')} q=\"{q}\"")
+    if motifs:
+        lines.append("小说叙事母题:")
+        for m in motifs:
+            q = m.get("quote", "")[:30]
+            lines.append(f"  - {m.get('name','')} (type={m.get('type','')}, emotion={m.get('emotion_tag','null')}) q=\"{q}\"")
+    return "\n".join(lines)
 
 
 def main():
@@ -173,78 +171,61 @@ def main():
     fic = get_daily_content(args.fiction_path, args.max_commits)
     print(f"  memory: {len(mem)} 天, fiction: {len(fic)} 天")
 
-    weekly = defaultdict(lambda: {"schemas_texts": [], "motifs_texts": []})
+    weekly = defaultdict(lambda: {"diary": [], "fiction": []})
     for date, text in mem.items():
-        weekly[iso_week(date)]["schemas_texts"].append(f"[{date}] {text}")
+        weekly[iso_week(date)]["diary"].append(f"[{date}] {text[:2000]}")
     for date, text in fic.items():
-        weekly[iso_week(date)]["motifs_texts"].append(f"[{date}] {text}")
+        weekly[iso_week(date)]["fiction"].append(f"[{date}] {text[:2000]}")
 
     all_weeks = sorted(weekly.keys())
     recent = all_weeks[-args.weeks:]
-    print(f"分析 {args.weeks} 周: {recent[0]} → {recent[-1]}")
 
-    print("\n每周提取...")
-    ws = {}
-    wm = {}
+    print(f"\n提取最近 {args.weeks} 周数据...")
+    weekly_schemas = {}
+    weekly_motifs = {}
     for week in recent:
         w = weekly[week]
-        if w["schemas_texts"]:
-            ws[week] = extract_elements(client, SCHEMA_PROMPT, "\n\n".join(w["schemas_texts"]), args.model)
+        if w["diary"]:
+            weekly_schemas[week] = extract_elements(client, SCHEMA_PROMPT, "\n\n".join(w["diary"]), args.model)
         else:
-            ws[week] = []
-        if w["motifs_texts"]:
-            wm[week] = extract_elements(client, MOTIF_PROMPT, "\n\n".join(w["motifs_texts"]), args.model)
+            weekly_schemas[week] = []
+        if w["fiction"]:
+            weekly_motifs[week] = extract_elements(client, MOTIF_PROMPT, "\n\n".join(w["fiction"]), args.model)
         else:
-            wm[week] = []
-        print(f"  {week}: schemas={len(ws[week])} motifs={len(wm[week])}")
+            weekly_motifs[week] = []
+        s = len(weekly_schemas[week])
+        m = len(weekly_motifs[week])
+        print(f"  {week}: {s} 图式 {m} 母题{' ★ 同时有日记和小说' if s and m else ''}")
 
-    print("\n寻找影响证据...")
-    all_evidence = []
-    for i in range(len(recent) - 1):
-        w, w1 = recent[i], recent[i+1]
-        inp = {
-            "w_schemas": json.dumps(ws[w][:10], ensure_ascii=False, indent=2),
-            "w_motifs": json.dumps(wm[w][:10], ensure_ascii=False, indent=2),
-            "w1_schemas": json.dumps(ws[w1][:10], ensure_ascii=False, indent=2),
-            "w1_motifs": json.dumps(wm[w1][:10], ensure_ascii=False, indent=2),
-        }
-        prompt = EVIDENCE_PROMPT.format(**inp)
-        r = call_llm(client, prompt,
-                     f"分析 {w} → {w1} 的影响证据", args.model, max_tokens=2048)
-        ev = r.get("evidence", [])
-        for e in ev:
-            e["from_week"] = w
-            e["to_week"] = w1
-            if "from_item" not in e or e["from_item"] is None:
-                e["from_item"] = ""
-            if "to_item" not in e or e["to_item"] is None:
-                e["to_item"] = ""
-        all_evidence.extend(ev)
-        print(f"  {w} → {w1}: {len(ev)} 条证据")
-        for e in ev:
-            print(f"    [{e.get('path','?')}] {str(e.get('from_item',''))[:15]} → {str(e.get('to_item',''))[:15]} ({e.get('strength','?')})")
+    # 分析每周的周内关联（只分析同时有日记和小说的周）
+    print("\n周内关联分析...")
+    results = []
+    for week in recent:
+        schemas = weekly_schemas[week]
+        motifs = weekly_motifs[week]
+        if not schemas or not motifs:
+            print(f"  {week}: 跳过（缺少日记或小说数据）")
+            continue
 
-    # 按路径聚合
-    by_path = defaultdict(list)
-    for e in all_evidence:
-        by_path[e["path"]].append(e)
+        week_text = format_week(week, schemas, motifs)
+        prompt = WITHIN_WEEK_PROMPT.format(week_data=week_text, week=week)
+        r = call_llm(client, prompt, week_text, args.model, max_tokens=4096)
+        r["week"] = week
+        results.append(r)
+        print(f"  {week}: {r.get('overall_judgment','?')} — {r.get('summary','')[:50]}")
 
-    result = {
-        "weeks": recent,
-        "total_evidence": len(all_evidence),
-        "evidence_by_path": {k: len(v) for k, v in by_path.items()},
-        "evidence": all_evidence,
-    }
+    # 聚合
+    judgments = [r.get("overall_judgment", "?") for r in results]
+    from collections import Counter
+    judgment_dist = Counter(judgments)
 
     out = output_dir / "temporal_result.yaml"
     with open(out, "w", encoding="utf-8") as f:
-        yaml.dump(result, f, allow_unicode=True, sort_keys=False)
+        yaml.dump({"weeks_analyzed": len(results), "judgment_distribution": dict(judgment_dist), "weekly_details": results}, f, allow_unicode=True, sort_keys=False)
+
     print(f"\n结果: {out}")
-    print(f"  总证据: {len(all_evidence)} 条")
-    for path, items in sorted(by_path.items()):
-        labels = {"A": "情绪延续", "B": "认知外溢", "C": "叙事延续", "D": "叙事内化"}
-        strong = sum(1 for x in items if x.get("strength") == "强")
-        print(f"  路径{path}({labels.get(path,'?')}): {len(items)} 条 (强{strong})")
+    print(f"  分析周数: {len(results)}")
+    print(f"  关系分布: {dict(judgment_dist)}")
 
 
 if __name__ == "__main__":
