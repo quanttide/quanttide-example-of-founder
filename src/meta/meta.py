@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-日记变更监听（RabbitMQ）— journal 提交后通过消息队列触发处理
+meta — 编排层
 
-producer: 检测新日志 → 发布消息到队列
-consumer: 接收消息 → 单篇 think → 健康检查 → 增量 execute
+journal 变更后自动触发 think → health → execute 完整链路。
+
+producer: 检测新日志 → 发布消息到 RabbitMQ
+consumer: 接收消息 → 单篇 think → 情绪检测 → 增量 execute
 """
 
 import os
