@@ -27,16 +27,15 @@ EXTRACT_PROMPT = """你是一名执行意图提取助手。从以下日记文本
 
 输出 JSON 数组，每条：
 {{
-  "type": "plan/intent/decision/risk/question",
-  "description": "待办描述（15字内）",
-  "context": "一句话完整上下文",
-  "deadline_hint": "时间线索如"明天""下周"或null",
-  "status": "pending/in_progress/done/cancelled",
-  "confidence": 0-1
+  "type": "plan/intent/decision/question",
+  "raw": "原文完整句子（逐字摘录，不改写）",
+  "status": "pending/in_progress/done/cancelled"
 }}
 
-只提取有明确执行含义的内容，忽略纯反思和情绪描述。
-纯 JSON 输出。"""
+规则：
+- raw 必须是原文中连续出现的句子，不能概括、不能压缩、不能改写
+- 只提取有明确执行含义的内容，忽略纯反思和情绪描述
+- 纯 JSON 输出。"""
 
 
 def get_journal_text(repo_path, max_commits=200):
@@ -74,12 +73,14 @@ def main():
     parser.add_argument("--date", default=None, help="指定日期文件 (YYYY-MM-DD)")
     args = parser.parse_args()
 
+    base_dir = Path(os.path.dirname(__file__))
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     if not api_key:
         print("错误: 请设置 DEEPSEEK_API_KEY", file=sys.stderr); sys.exit(1)
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.now().strftime("%Y-%m-%d")
 
     print("获取 journal 内容...")
     if args.date:
@@ -131,31 +132,66 @@ def main():
             type_count[item.get("type", "?")] += 1
         print(f"  提取 {len(items)} 条: {dict(type_count)}")
 
-    # 输出
-    out = output_dir / "todos.yaml"
-    with open(out, "w", encoding="utf-8") as f:
-        yaml.dump({"todos": all_items}, f, allow_unicode=True, sort_keys=False)
+    # 生成 TODO.md（增量模式：保留已有标记，只追加新条目）
+    todo_path = base_dir / "TODO.md"
+    existing_items = set()
 
+    # 读取已有 TODO.md，保留已完成的标记
+    if todo_path.exists():
+        with open(todo_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                # 提取已有条目文本
+                if line.startswith("- [x] ") or line.startswith("- [ ] "):
+                    existing_items.add(line[6:].strip())
+
+    # 只追加尚未存在的条目
+    new_lines = []
+    new_count = 0
+    for item in all_items:
+        raw = item.get("raw", "").strip()
+        if not raw:
+            continue
+        if raw in existing_items:
+            continue
+        status = item.get("status", "pending")
+        prefix = "- [x] " if status == "done" else "- [ ] "
+        new_lines.append(f"{prefix}{raw}\n")
+        new_count += 1
+
+    if new_lines:
+        # 读现有内容，追加新条目
+        if todo_path.exists():
+            with open(todo_path, encoding="utf-8") as f:
+                content = f.read()
+            # 在文件末尾追加
+            with open(todo_path, "a", encoding="utf-8") as f:
+                f.write(f"\n## 新增 ({date_str})\n")
+                f.writelines(new_lines)
+        else:
+            lines = ["# TODO\n", f"> 首次生成 ({date_str})\n"]
+            for t_label, t_type in [("Pod", "pending"), ("进行中", "in_progress"), ("已完成", "done")]:
+                items = [x for x in all_items if x.get("status") == t_type and x.get("raw", "").strip()]
+                if not items:
+                    continue
+                lines.append(f"\n## {t_label}\n")
+                for item in items:
+                    raw = item.get("raw", "").strip()
+                    prefix = "- [x] " if t_type == "done" else "- [ ] "
+                    lines.append(f"{prefix}{raw}\n")
+            with open(todo_path, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+    else:
+        print("  无新条目")
+
+    print(f"已更新: {todo_path}")
+    print(f"  新增: {new_count} 条")
     # 统计
-    type_dist = defaultdict(int)
-    status_dist = defaultdict(int)
-    for item in all_items:
-        type_dist[item.get("type", "?")] += 1
-        status_dist[item.get("status", "?")] += 1
-
-    print(f"\n结果: {out}")
-    print(f"  总计: {len(all_items)} 条")
-    print(f"  类型分布: {dict(type_dist)}")
-    print(f"  状态分布: {dict(status_dist)}")
-
-    # 按类型展示
-    print("\n待办清单:")
-    for item in all_items:
-        t = item.get("type", "?")
-        desc = item.get("description", "")
-        ctx = item.get("context", "")[:30]
-        status = item.get("status", "?")
-        print(f"  [{t}] {desc} — {ctx} ({status})")
+    with open(todo_path, encoding="utf-8") as f:
+        content = f.read()
+    pending = content.count("- [ ] ")
+    done = content.count("- [x] ")
+    print(f"  待办: {pending} 条  已完成: {done} 条")
 
 
 if __name__ == "__main__":
