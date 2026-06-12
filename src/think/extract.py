@@ -95,6 +95,11 @@ def main():
     parser.add_argument("--consume", action="store_true", help="通过 MQ 消费 journal.new")
     args = parser.parse_args()
 
+    api_key = os.environ.get("DEEPSEEK_API_KEY")
+    if not api_key:
+        print("错误: 请设置 DEEPSEEK_API_KEY", file=sys.stderr); sys.exit(1)
+    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+
     if args.consume:
         # MQ 消费者模式：订阅 journal.new → 处理 → 发布 cognition.ready
         sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -139,11 +144,6 @@ def main():
     base_dir = Path(os.path.dirname(__file__))
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    api_key = os.environ.get("DEEPSEEK_API_KEY")
-    if not api_key:
-        print("错误: 请设置 DEEPSEEK_API_KEY", file=sys.stderr); sys.exit(1)
-    client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
     if args.date:
         p = Path(args.memory_path) / "journal" / f"{args.date}.md"
