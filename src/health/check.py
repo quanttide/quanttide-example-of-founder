@@ -113,6 +113,7 @@ def get_cli_args():
     parser.add_argument("--days", type=int, default=7,
                         help="检查最近几天的数据")
     parser.add_argument("--model", default="deepseek-chat")
+    parser.add_argument("--consume", action="store_true", help="通过 MQ 消费 cognition.ready")
     return parser.parse_args()
 
 
@@ -137,6 +138,41 @@ def main():
         print("  小说: 无数据")
     else:
         print(f"  小说: {len(fiction)} 字符")
+
+    if args.consume:
+        import pika
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from meta.meta import connect
+
+        def on_message(ch, method, properties, body):
+            msg = json.loads(body.decode())
+            segments = msg.get("segments", [])
+            moods = []
+            for s in segments:
+                mood = s.get("situation", {}).get("mood", {})
+                if mood:
+                    moods.append(mood)
+            if moods:
+                avg_val = sum(m.get("valence", 0) or 0 for m in moods) / len(moods)
+                print(f"情绪检测: {len(moods)} 段, 平均愉悦度 {avg_val:.1f}")
+                if avg_val < -1:
+                    print("  ⚠ 愉悦度偏低")
+            else:
+                print("无情绪数据")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+        conn = connect()
+        ch = conn.channel()
+        ch.queue_declare(queue="cognition.ready", durable=True)
+        ch.basic_consume(queue="cognition.ready", on_message_callback=on_message)
+        print("监听 cognition.ready (Ctrl+C 退出)", file=sys.stderr)
+        try:
+            ch.start_consuming()
+        except KeyboardInterrupt:
+            conn.close()
+        return
 
     if not diary and not fiction:
         print(f"\n最近 {args.days} 天内无数据。")

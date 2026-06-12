@@ -2,9 +2,10 @@
 """
 认知提取 — 从 journal 中提取情境、意图、想法
 
-情境：认知发生的容器（时间/地点/参与者/活动/情绪）
-意图：行动导向（目标/动机/计划/承诺）
-想法：认知产出（洞察/假设/问题/类比）
+输入：通过 meta 订阅 journal.new（RabbitMQ）
+输出：发布 cognition.ready（RabbitMQ）
+
+也可通过参数直接处理指定文件。
 """
 
 import os
@@ -13,8 +14,10 @@ import json
 import yaml
 import subprocess
 import re
+import pika
 from pathlib import Path
 from datetime import datetime
+from collections import defaultdict
 from openai import OpenAI
 
 EXTRACT_PROMPT = """从以下日记段落中提取结构化认知要素。
@@ -89,7 +92,49 @@ def main():
     parser.add_argument("--output", "-o", default="output")
     parser.add_argument("--model", default="deepseek-chat")
     parser.add_argument("--date", default=None)
+    parser.add_argument("--consume", action="store_true", help="通过 MQ 消费 journal.new")
     args = parser.parse_args()
+
+    if args.consume:
+        # MQ 消费者模式：订阅 journal.new → 处理 → 发布 cognition.ready
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from meta.meta import connect, publish as mq_publish
+
+        def on_message(ch, method, properties, body):
+            msg = json.loads(body.decode())
+            content = msg.get("content", "")
+            hash_val = msg.get("hash", "")
+            print(f"收到: {hash_val[:8]}", file=sys.stderr)
+
+            segments = segment_text(content)
+            results = []
+            for seg in segments:
+                r = client.chat.completions.create(
+                    model=args.model,
+                    messages=[{"role": "system", "content": EXTRACT_PROMPT},
+                              {"role": "user", "content": seg}],
+                    response_format={"type": "json_object"},
+                    temperature=0.1, max_tokens=1024,
+                )
+                data = json.loads(r.choices[0].message.content.strip())
+                data["_raw"] = seg[:100]
+                results.append(data)
+
+            mq_publish("cognition.ready", {"hash": hash_val, "segments": results})
+            print(f"已发布 cognition.ready: {hash_val[:8]}", file=sys.stderr)
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+        conn = connect()
+        ch = conn.channel()
+        ch.queue_declare(queue="journal.new", durable=True)
+        ch.queue_declare(queue="cognition.ready", durable=True)
+        ch.basic_consume(queue="journal.new", on_message_callback=on_message)
+        print("监听 journal.new → cognition.ready (Ctrl+C 退出)", file=sys.stderr)
+        try:
+            ch.start_consuming()
+        except KeyboardInterrupt:
+            conn.close()
+        return
 
     base_dir = Path(os.path.dirname(__file__))
     output_dir = Path(args.output)

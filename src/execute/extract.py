@@ -79,6 +79,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--think-output", default=None)
     parser.add_argument("--model", default="deepseek-chat")
+    parser.add_argument("--consume", action="store_true", help="通过 MQ 消费 cognition.ready")
     args = parser.parse_args()
 
     base_dir = Path(os.path.dirname(__file__))
@@ -89,6 +90,44 @@ def main():
     if not api_key:
         print("错误: 请设置 DEEPSEEK_API_KEY", file=sys.stderr); sys.exit(1)
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+
+    if args.consume:
+        sys.path.insert(0, str(base_dir.parent))
+        from meta.meta import connect
+
+        def on_message(ch, method, properties, body):
+            msg = json.loads(body.decode())
+            segments = msg.get("segments", [])
+            plans = extract_plans(segments)
+            ready = []
+            for p in plans:
+                prompt = JUDGE_PROMPT.format(situation=p["activity"], intent=p["content"])
+                r = client.chat.completions.create(
+                    model=args.model,
+                    messages=[{"role": "system", "content": prompt}, {"role": "user", "content": p["content"]}],
+                    response_format={"type": "json_object"}, temperature=0.1, max_tokens=256,
+                )
+                result = json.loads(r.choices[0].message.content.strip())
+                if result.get("verdict") == "可执行":
+                    ready.append((p["content"], result.get("first_step", "")))
+            if ready:
+                print(f"  可执行: {len(ready)} 条")
+                for text, step in ready:
+                    print(f"    [ ] {text} → {step}")
+            else:
+                print("  无可执行计划")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+        conn = connect()
+        ch = conn.channel()
+        ch.queue_declare(queue="cognition.ready", durable=True)
+        ch.basic_consume(queue="cognition.ready", on_message_callback=on_message)
+        print("监听 cognition.ready (Ctrl+C 退出)", file=sys.stderr)
+        try:
+            ch.start_consuming()
+        except KeyboardInterrupt:
+            conn.close()
+        return
 
     segments = load_cognition(think_dir)
     plans = extract_plans(segments)
