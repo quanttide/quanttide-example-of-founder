@@ -94,8 +94,7 @@ def main():
     plans = extract_plans(segments)
     print(f"plan/commitment 总数: {len(plans)}")
 
-    ready = []  # (content, step)
-    fuzzy = []  # (content, step, domain)
+    ready = []
     skip = []
 
     total_plans = len(plans)
@@ -118,23 +117,12 @@ def main():
 
         if verdict == "可执行":
             ready.append((p["content"], step))
-        elif verdict == "模糊方向":
-            fuzzy.append((p["content"], step, domain))
         else:
             skip.append(p["content"])
 
-    # 统计
-    groups = defaultdict(list)
-    for text, step, domain in fuzzy:
-        groups[domain].append((text, step))
-
-    print(f"\r  判断完成: {total_plans}/{total_plans} (100%)", file=sys.stderr)
     print(f"  可执行: {len(ready)}")
-    print(f"  模糊方向: {len(fuzzy)}")
-    for domain, items in sorted(groups.items()):
-        print(f"    {domain}: {len(items)} 条")
 
-    # 生成 TODO.md
+    # 生成 TODO.md（只输出可执行条目）
     todo_path = base_dir / "TODO.md"
     date_str = datetime.now().strftime("%Y-%m-%d")
 
@@ -146,56 +134,24 @@ def main():
                 if line.startswith("- [x] ") or line.startswith("- [ ] "):
                     existing.add(line[6:].strip())
 
+    new_items = [(t, s) for t, s in ready if t not in existing]
     new_count = 0
-    with open(todo_path, "a" if todo_path.exists() else "w", encoding="utf-8") as f:
-        if not todo_path.exists():
-            f.write("# TODO\n\n")
-        has_new = False
 
-        new_ready = [(t, s) for t, s in ready if t not in existing]
-        if new_ready:
-            if not has_new:
-                f.write(f"## {date_str}\n\n")
-                has_new = True
-            f.write("### 可执行\n\n")
-            for text, step in new_ready:
+    if new_items:
+        with open(todo_path, "a" if todo_path.exists() else "w", encoding="utf-8") as f:
+            if not todo_path.exists():
+                f.write("# TODO\n\n")
+            f.write(f"## {date_str}\n\n")
+            for text, step in new_items:
                 f.write(f"- [ ] {text}\n")
                 if step:
                     f.write(f"  第一步：{step}\n")
             f.write("\n")
-            new_count += len(new_ready)
+            new_count = len(new_items)
 
-        new_fuzzy = [(t, s, d) for t, s, d in fuzzy if t not in existing]
-        if new_fuzzy:
-            if not has_new:
-                f.write(f"## {date_str}\n\n")
-                has_new = True
-            f.write("### 需分解\n\n")
-            f.write("> 以下事项有方向但缺具体步骤，按领域分组。选择 1-2 个领域优先分解。\n\n")
-            g = defaultdict(list)
-            for text, step, domain in new_fuzzy:
-                g[domain].append((text, step))
-            for domain, items in sorted(g.items()):
-                f.write(f"**{domain}**\n\n")
-                for text, step in items:
-                    f.write(f"- [ ] {text}\n")
-                    if step:
-                        f.write(f"  切入点：{step}\n")
-                f.write("\n")
-            new_count += len(new_fuzzy)
-
-    # 展示
     print(f"\n=== 可执行 ===")
     for text, step in ready:
         print(f"  [ ] {text}  → {step}")
-
-    print(f"\n=== 需分解 ===")
-    for domain, items in sorted(groups.items()):
-        print(f"\n  【{domain}】")
-        for text, step in items:
-            print(f"    [ ] {text}")
-            if step:
-                print(f"        切入点：{step}")
 
     print(f"\n已更新: {todo_path}")
     print(f"  新增: {new_count} 条")
