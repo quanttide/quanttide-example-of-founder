@@ -1,0 +1,77 @@
+# 情境数据结构 (实验 1.1.2)
+# 从 memory 中提取的最小认知单元
+
+situation:
+  fields:
+    - name: id
+      type: string
+      description: 情境唯一标识 (如 s-2026-06-01-001)
+
+    - name: source
+      type: object
+      description: 来源引用
+      fields:
+        - name: file
+          type: string
+          description: 源文件路径
+        - name: line_start
+          type: integer
+          description: 起始行号
+        - name: line_end
+          type: integer
+          description: 结束行号
+
+    - name: time
+      type: object
+      description: 时间
+      fields:
+        - name: raw
+          type: string
+          description: 原文中的时间表述
+        - name: inferred_date
+          type: string
+          description: 推断日期 (YYYY-MM-DD)
+
+    - name: location
+      type: string
+      description: 地点 (自由文本, 不预设分类)
+
+    - name: participants
+      type: array
+      items: string
+      description: 参与者列表
+
+    - name: activity
+      type: string
+      description: 活动描述 (自由文本)
+
+    - name: mood
+      type: object
+      description: 情绪状态
+      fields:
+        - name: raw
+          type: string
+          description: 原文中的情绪表述
+        - name: valence
+          type: integer
+          description: 愉悦度 -3 ~ +3
+        - name: arousal
+          type: integer
+          description: 激活度 0 ~ 5
+
+  example:
+    - id: s-2026-06-01-001
+      source:
+        file: journal/default/2026-06-01.md
+        line_start: 5
+        line_end: 6
+      time:
+        raw: 今天上午
+        inferred_date: 2026-06-01
+      location: 办公室
+      participants: [团队, 两个总裁, 两个秘书, 秘书长]
+      activity: 团队协同 — 同步项目情况、对齐需求
+      mood:
+        raw: 心情已经调节过来了
+        valence: 0
+        arousal: 2

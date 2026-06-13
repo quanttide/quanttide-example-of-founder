@@ -1,7 +1,19 @@
 # src
 
-| 目录 | 对应 Phase | 说明 |
-|------|-----------|------|
-| think | Phase 1: 认知提炼 | 从 memory 中提取情境、意图、想法、图式 |
-| write | Phase 2: 叙事提炼 | 从 fiction 中提取母题、风格、图谱 |
-| main  | Phase 3: 反馈循环 | 认知↔叙事双向驱动，依赖 think + write |
+| 目录 | 说明 |
+|------|------|
+| knowl | 知识抽取工具（模型约束 LLM 输出） |
+| health | 健康检查 |
+
+## knowl 快速开始
+
+```bash
+# 认知抽取（带模型约束）
+python3 -m knowl.extract --input <data> --model ../data/knowl/cognition.yaml --type cognition --output out/
+
+# TODO 抽取
+python3 -m knowl.extract --input <data> --model ../data/knowl/cognition.yaml --type todo --output out/
+
+# 母题识别
+python3 -m knowl.extract --input <data> --model ../data/knowl/motif.yaml --type motif --output out/
+```
