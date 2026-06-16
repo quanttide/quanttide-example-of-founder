@@ -1,8 +1,8 @@
 # 认知数据结构 — 从日记中提取的最小认知单元
-# cognition: 情境 + 意图 + 想法
+# cognition: 情境 + 意图 + 想法 + 图式
 
 cognition:
-  description: 认知要素 — 从个人叙事中提取的结构化认知单元
+  description: 认知要素 — 从个人叙事中提取的结构化认知单元，含图式识别
   fields:
     - name: segment_id
       type: string
@@ -79,6 +79,25 @@ cognition:
             type: string
             description: 想法原文
 
+    - name: schemas
+      type: array
+      description: 图式 — 本段认知触发的重复认知模式
+      items:
+        type: object
+        fields:
+          - name: domain
+            type: string
+            description: 所属领域（如"叙事工程"、"系统架构"、"团队管理"）
+          - name: name
+            type: string
+            description: 图式名称（如"团队脆弱期的收缩策略"）
+          - name: trigger
+            type: string
+            description: 本段中触发的具体情境
+          - name: response
+            type: string
+            description: 本段中的响应表现
+
   example:
     - segment_id: "001"
       source: "journal/2026-06-01.md"
@@ -99,3 +118,8 @@ cognition:
       ideas:
         - type: insight
           content: "实验方向应该聚焦在单个变量的精确控制"
+      schemas:
+        - name: "面对不确定的收缩策略"
+          domain: "团队管理"
+          trigger: "团队面临人员变动风险"
+          response: "只对核心成员投入精力"

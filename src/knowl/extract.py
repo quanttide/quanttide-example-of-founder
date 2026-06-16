@@ -234,7 +234,7 @@ def extract_by_type(data: dict, output: Path, extract_type: str, model_schema: d
 
 # ── cognition: journal → cognition.yaml ──────────────────
 
-EXTRACT_PROMPT_BASE = """从以下日记段落中提取结构化认知要素。
+EXTRACT_PROMPT_BASE = """从以下日记段落中提取结构化认知要素，包含图式。
 
 {format_instructions}
 
@@ -242,6 +242,11 @@ EXTRACT_PROMPT_BASE = """从以下日记段落中提取结构化认知要素。
 - situation 从原文推断，不编造
 - intentions 只提取有行动导向的内容（想要/打算/决定/需要）
 - ideas 只提取认知产出（发现/想到/怀疑/感觉）
+- schemas 识别本段触发的重复认知模式（图式），每个图式包含名称+所属领域+触发情境+响应
+  - domain 标注所属领域（如"叙事工程"、"系统架构"、"团队管理"）
+  - 图式名称用已有认知模式名（如"团队脆弱期的收缩策略"、"讲故事传递意图"）
+  - 如果是未见过的模式，用概括性名称命名
+  - 不需要跨段验证，只关注本段触发的模式
 - 如果某类不存在，输出空数组或null
 - 纯 JSON。"""
 
