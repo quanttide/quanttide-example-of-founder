@@ -109,10 +109,23 @@
                             ? ["#74B9FF", "#55E6C1", "#FDCB6E", "#E17055"]
                             : ax === data.themeAxes[1]
                               ? ["#A29BFE", "#6C5CE7", "#FD79A8", "#E17055"]
-                              : ["#81ECEC", "#74B9FF", "#FDCB6E", "#55E6C1"],
+                              : ax === data.themeAxes[2]
+                                ? [
+                                      "#B8E994",
+                                      "#82CCDD",
+                                      "#F8A5C2",
+                                      "#E77F67",
+                                      "#E17055",
+                                  ]
+                                : ["#81ECEC", "#74B9FF", "#FDCB6E", "#55E6C1"],
                 }));
 
-                const stageKeys = ["孤独→陪伴", "猜测→确认", "仰望→并肩"];
+                const stageKeys = [
+                    "孤独→陪伴",
+                    "猜测→确认",
+                    "疏离→亲密",
+                    "仰望→并肩",
+                ];
                 const scenes = data.scenes.map((s) => ({
                     id: s.id,
                     n: s.name,
@@ -129,7 +142,7 @@
                 }));
 
                 const W = 1000,
-                    H = 340;
+                    H = 420;
                 const M = { t: 26, l: 130, r: 40, b: 32 };
                 const IW = W - M.l - M.r;
                 const IH = (H - M.t - M.b) / 3;
