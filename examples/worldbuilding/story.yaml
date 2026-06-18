@@ -1,0 +1,94 @@
+source: 职场言情/4_改稿/8_1_海边再散步.md
+characters:
+- arc: 从自卑到自信
+  motivation: 珍惜与林远亭的感情，弥补过去的遗憾
+  name: 陆知微
+  personality: 温柔、感性、容易感动
+  role: 恋人
+- arc: 从孤独到被治愈
+  motivation: 与陆知微在一起，解开过去的心结
+  name: 林远亭
+  personality: 温柔、细腻、善于表达
+  role: 恋人
+emotional_geography:
+- emotion: 幸福、不真实感
+  memory: 两人牵手散步，享受当下
+  place: 海边栈桥
+- emotion: 忧郁、思念
+  memory: 林远亭过去心情不好时来海边想心事和想陆知微
+  place: 海边
+relationship:
+- between:
+  - 陆知微
+  - 林远亭
+  dynamic: 互相治愈、珍惜彼此
+  tension: 过去十年的错过和自卑
+  type: 恋人
+setting:
+- atmosphere: 温暖、宁静、幸福
+  location: 海边栈桥
+  significance: 两人关系确认后的甜蜜场景，也是过去林远亭独自忧郁的地方
+tensions:
+- axis: 错过vs重逢
+  description: 两人过去十年互相暗恋却未相识，如今终于在一起
+  resolution: 已解决，但仍有遗憾
+- axis: 自卑vs勇气
+  description: 林远亭过去觉得自己不配，陆知微也以为只能看背影
+  resolution: 通过对话和表白得到缓解
+themes:
+- manifestation: 林远亭的心结被陆知微一句话解开，两人互相温暖
+  theme: 治愈与救赎
+- manifestation: 后悔错过十年，但最终走到一起
+  theme: 错过的时光
+timeline:
+- event: 两人在海边栈桥散步，对话
+  impact: 确认感情，解开过去心结
+  period: 现在
+- event: 林远亭常来海边想心事和想陆知微
+  impact: 形成自卑和思念
+  period: 过去
+- event: 陆知微在背后看林远亭的背影
+  impact: 让林远亭感到被陪伴，解开孤独心结
+  period: 过去
+motifs:
+- description: 情侣在海边栈桥散步，阳光海面营造浪漫氛围
+  excerpt: 陆知微被林远亭牵着手，在海边的栈桥上漫步。下午的阳光很好，海面被阳光照的碧蓝。
+  id: m-001
+  name: 海边漫步
+  sub_type: 自然场景
+  type: image
+- description: 后悔错过十年，未能早点相识相知
+  excerpt: 后悔我们错过了十年。后悔我没有鼓起勇气认识你。
+  id: m-002
+  name: 错过与遗憾
+  sub_type: 时间流逝
+  type: theme
+- description: 一方在对方不知情时默默陪伴，给予支持
+  excerpt: 我没想到，我最爱的女孩子，在我最难过的时候偷偷在我身后陪我。
+  id: m-003
+  name: 默默守护
+  sub_type: 情感支持
+  type: character
+- description: 觉得自己不配拥有爱情，缺乏勇气
+  excerpt: 那个时候的自己总觉得自己不配。
+  id: m-004
+  name: 自我怀疑
+  sub_type: 自卑心理
+  type: theme
+- description: 通过对话表达深情，化解心结
+  excerpt: 那天其实我很吃惊。原来我那个时候从来不是一个人。
+  id: m-005
+  name: 温柔告白
+  sub_type: 情感表达
+  type: plot
+style:
+  name: 抒情对话体
+  features:
+    avg_sentence_length: 0
+    dialogue_ratio: 0
+    lexical_diversity: 0
+    rhetorical_density: 0
+  tags:
+  - 抒情
+  - 对话驱动
+  - 内心独白

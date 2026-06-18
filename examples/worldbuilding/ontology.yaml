@@ -1,11 +1,11 @@
-# 世界观模型 — 从职场言情小说中抽取结构化世界观要素
-# 实验 3.1: CLI 抽取 → 世界观图谱
+# 小说故事模型 — 从职场言情小说中抽取完整故事要素
+# 实验 3.1: CLI 抽取 → 故事图谱
 #
 # 用法: qtadmin knowl extract --type worldbuilding \
 #   --input fiction.yaml --model ontology.yaml --output out/
 
-worldbuilding:
-  description: 世界观 — 虚构世界的结构化要素，含人际关系、社会背景、情感地理等
+story:
+  description: 故事 — 虚构叙事的完整合一分析，含表层要素与深层模式
   fields:
     - name: characters
       type: array
@@ -118,10 +118,45 @@ worldbuilding:
         fields:
           - name: axis
             type: string
-            description: 张力轴（如 错过vs重逢、自卑vs勇气、过去vs现在）
+            description: 张力轴
           - name: description
             type: string
             description: 张力描述
           - name: resolution
             type: string | null
             description: 现阶段解决程度
+
+    - name: motifs
+      type: array
+      description: 母题 — 叙事中重复出现的模式
+      items:
+        type: object
+        fields:
+          - name: name
+            type: string
+            description: 母题名称
+          - name: type
+            type: enum
+            values: [theme, image, plot, character]
+            description: 母题类型
+          - name: sub_type
+            type: string
+            description: 子类型标签
+          - name: description
+            type: string
+            description: 母题描述
+          - name: excerpt
+            type: string
+            description: 原文片段
+
+    - name: style
+      type: object
+      description: 风格 — 文本的整体叙事风格特征
+      fields:
+        - name: name
+          type: string
+          description: 风格名称
+        - name: tags
+          type: array
+          items: string
+          description: 风格标签
