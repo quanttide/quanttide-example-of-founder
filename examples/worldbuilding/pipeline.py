@@ -79,9 +79,11 @@ def merge(source_yaml: str, wb_dir: Path, motif_dir: Path) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="故事抽取流水线")
+    here = Path(__file__).parent
     parser.add_argument("input", type=Path, help="小说 YAML 文件 (entries 格式)")
     parser.add_argument("--model", "-m", type=Path, default=None, help="ontology 模型文件")
     parser.add_argument("--output", "-o", type=Path, default=Path("story.yaml"), help="输出文件")
+    parser.add_argument("--no-render", action="store_true", help="跳过 HTML 渲染")
     args = parser.parse_args()
 
     source_name = args.input.name
@@ -106,6 +108,12 @@ def main():
 
     json_path = out_path.with_suffix(".json")
     json_path.write_text(json.dumps(story, ensure_ascii=False, indent=2))
+
+    if not args.no_render:
+        html_path = out_path.parent / "index.html"
+        subprocess.run([sys.executable, str(here / "render.py"),
+                        str(out_path), "--output", str(html_path)], check=True)
+        result = f" + {html_path}"
 
     print(f"完成: {out_path} + {json_path}", file=sys.stderr)
 
