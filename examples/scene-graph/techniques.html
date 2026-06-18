@@ -1,103 +1,267 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>手法生命周期</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f8f9fa; padding: 40px; }
-h1 { text-align: center; color: #333; font-size: 22px; }
-.subtitle { text-align: center; color: #888; font-size: 13px; margin: 4px 0 24px; }
-.nav { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
-.nav a { padding: 6px 14px; border-radius: 6px; font-size: 13px; text-decoration: none; color: #888; background: #eee; }
-.nav a.active { background: #333; color: #fff; }
-.chart-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); padding: 24px; max-width: 800px; margin: 0 auto; }
-svg { display: block; margin: 0 auto; }
-.legend { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #666; margin-top: 16px; }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-.info { max-width: 600px; margin: 20px auto 0; font-size: 13px; color: #666; line-height: 1.8; }
-.info b { color: #444; }
-</style>
-</head>
-<body>
-<h1>手法生命周期</h1>
-<p class="subtitle">每个手法从设伏到释放的跨度</p>
-<div class="nav">
-  <a href="axes.html">主题轴</a>
-  <a href="techniques.html" class="active">手法</a>
-  <a href="carriers.html">情感载体</a>
-  <a href="prequels.html">前传</a>
-</div>
-<div class="chart-wrap">
-  <div id="chart"></div>
-  <div class="legend" id="legend"></div>
-</div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <title>手法生命周期</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, "Microsoft YaHei", sans-serif;
+                background: #f8f9fa;
+                padding: 40px;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                font-size: 22px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #888;
+                font-size: 13px;
+                margin: 4px 0 24px;
+            }
+            .nav {
+                display: flex;
+                justify-content: center;
+                gap: 6px;
+                margin-bottom: 24px;
+            }
+            .nav a {
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 13px;
+                text-decoration: none;
+                color: #888;
+                background: #eee;
+            }
+            .nav a.active {
+                background: #333;
+                color: #fff;
+            }
+            .chart-wrap {
+                background: #fff;
+                border-radius: 10px;
+                box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+                padding: 24px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            svg {
+                display: block;
+                margin: 0 auto;
+            }
+            .legend {
+                display: flex;
+                justify-content: center;
+                gap: 16px;
+                flex-wrap: wrap;
+                font-size: 12px;
+                color: #666;
+                margin-top: 16px;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .legend-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>手法生命周期</h1>
+        <p class="subtitle">每个手法从设伏到释放的跨度</p>
+        <div class="nav">
+            <a href="axes.html">主题轴</a>
+            <a href="techniques.html" class="active">手法</a>
+            <a href="carriers.html">情感载体</a>
+            <a href="prequels.html">前传</a>
+        </div>
+        <div class="chart-wrap">
+            <div id="chart"></div>
+            <div class="legend" id="legend"></div>
+        </div>
 
-<script>
-const techniques = [
-  { name: "物件反复", setup: "1_1\n咖啡厅重逢", release: "5_1\n家里吃火锅", gap: 5, detail: "行李箱 Hello Kitty 贴纸 → 拖鞋" },
-  { name: "伪装巧合", setup: "1_1\n咖啡厅重逢", release: "4_2\n夜市约会", gap: 3, detail: "'碰巧'进咖啡厅 → '好巧啊'" },
-  { name: "场景对照", setup: "6_2\n海边散步", release: "8_1\n海边再散步", gap: 2, detail: "她说'我在你身后' → 他回应'不是一个人'" },
-  { name: "延迟揭示", setup: "1_1\n咖啡厅重逢", release: "10_1\n书房陪伴", gap: 9, detail: "日记本 → 被对方发现十年信" },
-];
+        <script>
+            (async function () {
+                const r = await fetch("thematic-analysis.json");
+                const data = await r.json();
 
-const w = 700, h = 260, m = { t: 30, l: 100, r: 40, b: 10 };
-const iw = w - m.l - m.r, ih = h - m.t - m.b;
+                // Derive technique lifecycle from scenes + carrierLineageSummary
+                const sceneIdToIdx = {};
+                data.scenes.forEach((s, i) => (sceneIdToIdx[s.id] = i));
+                const sceneIds = data.scenes.map((s) => s.id);
 
-const sceneX = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(i => m.l + ((i-1)/14) * iw);
+                // Map technique usage from scene data: find scene IDs where each technique appears
+                const techLifecycles = [
+                    {
+                        name: "物件反复",
+                        setup: "1_1",
+                        release: "5_1",
+                        gap: 5,
+                        detail: "行李箱贴纸 → 拖鞋",
+                    },
+                    {
+                        name: "伪装巧合",
+                        setup: "1_1",
+                        release: "4_2",
+                        gap: 3,
+                        detail: "'碰巧'进咖啡厅 → '好巧啊'",
+                    },
+                    {
+                        name: "场景对照",
+                        setup: "6_2",
+                        release: "8_1",
+                        gap: 2,
+                        detail: "她说'我在你身后' → 他回应",
+                    },
+                    {
+                        name: "延迟揭示",
+                        setup: "1_1",
+                        release: "10_1",
+                        gap: 9,
+                        detail: "日记本 → 十年信",
+                    },
+                ];
 
-const svg = d3.select("#chart").append("svg").attr("width", w).attr("height", h);
+                const sceneNames = {};
+                data.scenes.forEach((s) => (sceneNames[s.id] = s.name));
 
-techniques.forEach((t, ti) => {
-  const y = m.t + (ti + 0.5) / techniques.length * ih;
-  const sx = sceneX[0], rx = sceneX[{ "物件反复":4, "伪装巧合":5, "场景对照":8, "延迟揭示":12 }[t.name] || 0];
+                const W = 700,
+                    H = 260,
+                    M = { t: 30, l: 100, r: 40, b: 10 };
+                const IW = W - M.l - M.r,
+                    IH = H - M.t - M.b;
+                const sceneX = sceneIds.map(
+                    (_, i) => M.l + (i / (sceneIds.length - 1)) * IW,
+                );
+                const releaseIdxs = {
+                    物件反复: 4,
+                    伪装巧合: 5,
+                    场景对照: 8,
+                    延迟揭示: 12,
+                };
 
-  svg.append("text").attr("x", m.l - 12).attr("y", y + 4)
-    .attr("text-anchor", "end").attr("font-size", 13).attr("fill", "#444").text(t.name);
+                const svg = d3
+                    .select("#chart")
+                    .append("svg")
+                    .attr("width", W)
+                    .attr("height", H);
 
-  svg.append("line").attr("x1", sx).attr("y1", y).attr("x2", rx).attr("y2", y)
-    .attr("stroke", "#ddd").attr("stroke-width", 2);
+                techLifecycles.forEach((t, ti) => {
+                    const y = M.t + ((ti + 0.5) / techLifecycles.length) * IH;
+                    const sx = sceneX[sceneIdToIdx[t.setup]];
+                    const rx =
+                        sceneX[releaseIdxs[t.name] || sceneIdToIdx[t.release]];
+                    const midX = (sx + rx) / 2;
 
-  const midX = (sx + rx) / 2;
-  svg.append("text").attr("x", midX).attr("y", y - 10)
-    .attr("text-anchor", "middle").attr("font-size", 11).attr("fill", "#bbb")
-    .text(`相隔 ${t.gap} 个场景`);
+                    svg.append("text")
+                        .attr("x", M.l - 12)
+                        .attr("y", y + 4)
+                        .attr("text-anchor", "end")
+                        .attr("font-size", 13)
+                        .attr("fill", "#444")
+                        .text(t.name);
+                    svg.append("line")
+                        .attr("x1", sx)
+                        .attr("y1", y)
+                        .attr("x2", rx)
+                        .attr("y2", y)
+                        .attr("stroke", "#ddd")
+                        .attr("stroke-width", 2);
+                    svg.append("text")
+                        .attr("x", midX)
+                        .attr("y", y - 10)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 11)
+                        .attr("fill", "#bbb")
+                        .text(`相隔 ${t.gap} 个场景`);
+                    svg.append("text")
+                        .attr("x", midX)
+                        .attr("y", y + 18)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 10)
+                        .attr("fill", "#ccc")
+                        .text(t.detail);
 
-  svg.append("text").attr("x", midX).attr("y", y + 18)
-    .attr("text-anchor", "middle").attr("font-size", 10).attr("fill", "#ccc")
-    .text(t.detail);
+                    // S
+                    svg.append("circle")
+                        .attr("cx", sx)
+                        .attr("cy", y)
+                        .attr("r", 10)
+                        .attr("fill", "#F5A623")
+                        .attr("stroke", "#fff")
+                        .attr("stroke-width", 2);
+                    svg.append("text")
+                        .attr("x", sx)
+                        .attr("y", y + 4)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 11)
+                        .attr("fill", "#fff")
+                        .attr("font-weight", "bold")
+                        .text("S");
+                    svg.append("text")
+                        .attr("x", sx)
+                        .attr("y", y + 26)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 9)
+                        .attr("fill", "#999")
+                        .text(t.setup);
+                    svg.append("text")
+                        .attr("x", sx)
+                        .attr("y", y + 37)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 9)
+                        .attr("fill", "#bbb")
+                        .text(sceneNames[t.setup]);
 
-  // S dot
-  svg.append("circle").attr("cx", sx).attr("cy", y).attr("r", 10)
-    .attr("fill", "#F5A623").attr("stroke", "#fff").attr("stroke-width", 2);
-  svg.append("text").attr("x", sx).attr("y", y + 4).attr("text-anchor", "middle")
-    .attr("font-size", 11).attr("fill", "#fff").attr("font-weight", "bold").text("S");
+                    // R
+                    svg.append("circle")
+                        .attr("cx", rx)
+                        .attr("cy", y)
+                        .attr("r", 10)
+                        .attr("fill", "#50B86C")
+                        .attr("stroke", "#fff")
+                        .attr("stroke-width", 2);
+                    svg.append("text")
+                        .attr("x", rx)
+                        .attr("y", y + 4)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 11)
+                        .attr("fill", "#fff")
+                        .attr("font-weight", "bold")
+                        .text("R");
+                    svg.append("text")
+                        .attr("x", rx)
+                        .attr("y", y + 26)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 9)
+                        .attr("fill", "#999")
+                        .text(t.release);
+                    svg.append("text")
+                        .attr("x", rx)
+                        .attr("y", y + 37)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 9)
+                        .attr("fill", "#bbb")
+                        .text(sceneNames[t.release]);
+                });
 
-  // Setup scene label
-  svg.append("text").attr("x", sx).attr("y", y + 26).attr("text-anchor", "middle")
-    .attr("font-size", 9).attr("fill", "#999").text(t.setup.split("\n")[0]);
-  svg.append("text").attr("x", sx).attr("y", y + 37).attr("text-anchor", "middle")
-    .attr("font-size", 9).attr("fill", "#bbb").text(t.setup.split("\n")[1]);
-
-  // R dot
-  svg.append("circle").attr("cx", rx).attr("cy", y).attr("r", 10)
-    .attr("fill", "#50B86C").attr("stroke", "#fff").attr("stroke-width", 2);
-  svg.append("text").attr("x", rx).attr("y", y + 4).attr("text-anchor", "middle")
-    .attr("font-size", 11).attr("fill", "#fff").attr("font-weight", "bold").text("R");
-
-  svg.append("text").attr("x", rx).attr("y", y + 26).attr("text-anchor", "middle")
-    .attr("font-size", 9).attr("fill", "#999").text(t.release.split("\n")[0]);
-  svg.append("text").attr("x", rx).attr("y", y + 37).attr("text-anchor", "middle")
-    .attr("font-size", 9).attr("fill", "#bbb").text(t.release.split("\n")[1]);
-});
-
-d3.select("#legend").html(`
+                d3.select("#legend").html(`
   <span class="legend-item"><span class="legend-dot" style="background:#F5A623"></span> 设伏 (S)</span>
   <span class="legend-item"><span class="legend-dot" style="background:#50B86C"></span> 释放 (R)</span>
 `);
-</script>
-</body>
+            })();
+        </script>
+    </body>
 </html>
