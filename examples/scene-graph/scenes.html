@@ -71,6 +71,11 @@
                 font-size: 11px;
                 fill: #888;
             }
+            .prequel-link {
+                fill: none;
+                stroke-width: 1.5;
+                stroke-dasharray: 4, 3;
+            }
             .node circle {
                 stroke: #fff;
                 stroke-width: 2.5;
@@ -88,6 +93,13 @@
             .node .sub {
                 font-size: 10px;
                 fill: #888;
+            }
+            .prequel-node circle {
+                stroke-dasharray: 3, 2;
+                stroke: #999;
+            }
+            .prequel-node text {
+                fill: #777;
             }
             .legend {
                 display: flex;
@@ -119,7 +131,7 @@
                 pointer-events: none;
                 opacity: 0;
                 transition: opacity 0.15s;
-                max-width: 280px;
+                max-width: 320px;
             }
         </style>
     </head>
@@ -129,6 +141,7 @@
         <div class="controls">
             <button data-mode="phase" class="active">阶段</button>
             <button data-mode="technique">引用手法</button>
+            <button data-mode="iceberg">冰山</button>
         </div>
         <div id="chart" style="position: relative">
             <div class="tooltip-box" id="tooltip"></div>
@@ -144,6 +157,8 @@
                 延迟揭示: "#C0392B",
             };
 
+            const prequelColor = "#1A5276";
+
             const data = {
                 phases: [
                     { name: "初遇期", color: "#4A90D9" },
@@ -151,6 +166,35 @@
                     { name: "升温期", color: "#F5A623" },
                     { name: "转折期", color: "#E8654B" },
                     { name: "日常期", color: "#9B59B6" },
+                ],
+                prequels: [
+                    {
+                        id: "P1",
+                        name: "毕业晚会",
+                        detail: "他看她的古典舞，记了十年",
+                    },
+                    {
+                        id: "P2",
+                        name: "公开演讲",
+                        detail: "她听他的创业理想，第一次心动",
+                    },
+                    {
+                        id: "P3",
+                        name: "大四聚餐",
+                        detail: "两桌人，他注意到了她",
+                    },
+                    {
+                        id: "P4",
+                        name: "海边深夜",
+                        detail: "他写信，她在身后没有打扰",
+                    },
+                    { id: "P5", name: "醉酒坦白", detail: "被朋友问出心里话" },
+                    { id: "P6", name: "朋友圈十年", detail: "屏幕后的十年" },
+                    {
+                        id: "P7",
+                        name: "读他的代码",
+                        detail: "干净到每个模块都是教科书",
+                    },
                 ],
                 scenes: [
                     {
@@ -277,6 +321,20 @@
                     { from: "10_1", to: "10_2", type: "延续" },
                     { from: "10_2", to: "10_3", type: "延续" },
                 ],
+                prequelEdges: [
+                    { from: "P1", to: "1_2" },
+                    { from: "P1", to: "6_2" },
+                    { from: "P2", to: "4_1" },
+                    { from: "P3", to: "5_1" },
+                    { from: "P4", to: "6_2" },
+                    { from: "P4", to: "1_1" },
+                    { from: "P5", to: "1_1" },
+                    { from: "P5", to: "7_1" },
+                    { from: "P5", to: "10_1" },
+                    { from: "P6", to: "1_1" },
+                    { from: "P6", to: "4_2" },
+                    { from: "P7", to: "2_1" },
+                ],
                 sceneTechniques: {
                     "1_1": ["伪装巧合", "物件反复"],
                     "4_2": ["伪装巧合"],
@@ -288,8 +346,8 @@
             };
 
             const width = 1100,
-                height = 620;
-            const margin = { top: 60, bottom: 60, left: 80, right: 80 };
+                height = 700;
+            const margin = { top: 60, bottom: 160, left: 80, right: 80 };
             const innerW = width - margin.left - margin.right;
             const innerH = height - margin.top - margin.bottom;
 
@@ -309,7 +367,19 @@
                     y:
                         margin.top +
                         (phaseIndex[s.phase] / (phaseNames.length - 1)) *
-                            innerH,
+                            innerH *
+                            0.65,
+                };
+            });
+
+            // Prequel positions: evenly spaced below the scenes
+            const prequelPositions = {};
+            data.prequels.forEach((p, i) => {
+                prequelPositions[p.id] = {
+                    x:
+                        margin.left +
+                        ((i + 0.5) / data.prequels.length) * innerW,
+                    y: margin.top + innerH * 0.85,
                 };
             });
 
@@ -320,12 +390,37 @@
                 .attr("height", height);
             const tooltip = d3.select("#tooltip");
 
+            // Water line
+            const waterY = margin.top + innerH * 0.72;
+            svg.append("line")
+                .attr("x1", margin.left - 20)
+                .attr("y1", waterY)
+                .attr("x2", margin.left + innerW + 20)
+                .attr("y2", waterY)
+                .attr("stroke", "#AED6F1")
+                .attr("stroke-width", 2)
+                .attr("opacity", 0);
+
+            // Wave text
+            svg.append("text")
+                .attr("x", margin.left + innerW + 24)
+                .attr("y", waterY + 4)
+                .attr("font-size", 12)
+                .attr("fill", "#AED6F1")
+                .attr("opacity", 0)
+                .text("水面")
+                .attr("class", "water-label");
+
             // Phase background bands
             phaseNames.forEach((name, pi) => {
                 const y0 =
-                    margin.top + (pi / (phaseNames.length - 1)) * innerH - 28;
+                    margin.top +
+                    (pi / (phaseNames.length - 1)) * innerH * 0.65 -
+                    28;
                 const y1 =
-                    margin.top + (pi / (phaseNames.length - 1)) * innerH + 28;
+                    margin.top +
+                    (pi / (phaseNames.length - 1)) * innerH * 0.65 +
+                    28;
                 svg.append("rect")
                     .attr("x", margin.left)
                     .attr("y", y0)
@@ -356,14 +451,21 @@
             function getNodeTitle(s) {
                 const techs = data.sceneTechniques[s.id];
                 let extra = "";
-                if (techs && techs.length > 0) {
+                if (techs && techs.length > 0)
                     extra = "\n手法：" + techs.join("、");
-                }
                 return `${s.id} ${s.name}\n${s.sub}\n阶段：${s.phase}${extra}`;
             }
 
-            // Edges
-            const edgeGroup = svg.append("g");
+            // Groups for layering
+            const prequelLinkGroup = svg
+                .append("g")
+                .attr("class", "prequel-link-group");
+            const edgeGroup = svg.append("g").attr("class", "edge-group");
+            const prequelNodeGroup = svg
+                .append("g")
+                .attr("class", "prequel-node-group");
+            const nodeGroup = svg.append("g").attr("class", "node-group");
+
             function renderEdges() {
                 edgeGroup.selectAll("*").remove();
                 data.edges.forEach((e) => {
@@ -402,21 +504,17 @@
                             e.type === "呼应" ? "6,4" : "none",
                         );
 
-                    // Arrowhead
                     const angle = Math.atan2(y2 - y1, x2 - x1);
-                    const arrowLen = 10;
                     svg.append("polygon")
                         .attr(
                             "points",
-                            `${x2},${y2} ${x2 - arrowLen * Math.cos(angle - 0.35)},${y2 - arrowLen * Math.sin(angle - 0.35)} ${x2 - arrowLen * Math.cos(angle + 0.35)},${y2 - arrowLen * Math.sin(angle + 0.35)}`,
+                            `${x2},${y2} ${x2 - 10 * Math.cos(angle - 0.35)},${y2 - 10 * Math.sin(angle - 0.35)} ${x2 - 10 * Math.cos(angle + 0.35)},${y2 - 10 * Math.sin(angle + 0.35)}`,
                         )
                         .attr("fill", strokeColor);
 
-                    // Edge label
                     let label = e.type;
-                    if (mode === "technique" && e.technique) {
+                    if (mode === "technique" && e.technique)
                         label = e.technique;
-                    }
                     edgeGroup
                         .append("text")
                         .attr("x", midX + 8)
@@ -427,8 +525,125 @@
                 });
             }
 
-            // Nodes
-            const nodeGroup = svg.append("g");
+            function renderPrequels() {
+                const isIceberg = mode === "iceberg";
+                prequelLinkGroup.selectAll("*").remove();
+                prequelNodeGroup.selectAll("*").remove();
+
+                // Water line
+                svg.selectAll(".water-line").remove();
+                svg.selectAll(".water-label").remove();
+
+                if (isIceberg) {
+                    // "水面" divider
+                    const y = margin.top + innerH * 0.72;
+                    svg.append("line")
+                        .attr("class", "water-line")
+                        .attr("x1", margin.left - 20)
+                        .attr("y1", y)
+                        .attr("x2", margin.left + innerW + 20)
+                        .attr("y2", y)
+                        .attr("stroke", "#AED6F1")
+                        .attr("stroke-width", 2);
+
+                    // Wave label
+                    data.prequels.forEach((p, i) => {
+                        const px =
+                            margin.left +
+                            ((i + 0.5) / data.prequels.length) * innerW;
+                        svg.append("text")
+                            .attr("class", "water-label")
+                            .attr("x", px)
+                            .attr("y", y - 6)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", 11)
+                            .attr("fill", "#AED6F1")
+                            .text("▔");
+                    });
+
+                    // "冰山水下" label
+                    svg.append("text")
+                        .attr("class", "water-label")
+                        .attr("x", margin.left + innerW + 24)
+                        .attr("y", y + 4)
+                        .attr("font-size", 12)
+                        .attr("fill", "#AED6F1")
+                        .text("水面");
+
+                    // Prequel links
+                    prequelLinkGroup.attr("opacity", 1);
+                    data.prequelEdges.forEach((e) => {
+                        const from = prequelPositions[e.from];
+                        const to = positions[e.to];
+                        if (!from || !to) return;
+                        prequelLinkGroup
+                            .append("line")
+                            .attr("x1", from.x)
+                            .attr("y1", from.y)
+                            .attr("x2", to.x)
+                            .attr("y2", to.y)
+                            .attr("class", "prequel-link")
+                            .attr("stroke", prequelColor)
+                            .attr("opacity", 0.3);
+                    });
+
+                    // Prequel nodes
+                    data.prequels.forEach((p) => {
+                        const pos = prequelPositions[p.id];
+                        const g = prequelNodeGroup
+                            .append("g")
+                            .attr("class", "prequel-node")
+                            .attr("transform", `translate(${pos.x},${pos.y})`);
+
+                        g.append("circle")
+                            .attr("r", 16)
+                            .attr("fill", prequelColor)
+                            .attr("opacity", 0.3)
+                            .attr("stroke", prequelColor)
+                            .attr("stroke-width", 1.5)
+                            .attr("stroke-dasharray", "3,2")
+                            .on("mouseenter", () => {
+                                let refs =
+                                    (
+                                        data.prequels.find(
+                                            (q) => q.id === p.id,
+                                        ) || {}
+                                    ).refBy || [];
+                                let refText = refs.length
+                                    ? "<br/><b>出现在：</b>" + refs.join(", ")
+                                    : "";
+                                tooltip
+                                    .style("opacity", 1)
+                                    .html(
+                                        `<b>${p.id} ${p.name}</b><br/>${p.detail}${refText}`,
+                                    )
+                                    .style("left", pos.x + 22 + "px")
+                                    .style("top", pos.y - 10 + "px");
+                            })
+                            .on("mouseleave", () =>
+                                tooltip.style("opacity", 0),
+                            );
+
+                        g.append("text")
+                            .attr("y", 3)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", 11)
+                            .attr("fill", prequelColor)
+                            .attr("opacity", 0.6)
+                            .text(p.id);
+
+                        g.append("text")
+                            .attr("y", -18)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", 10)
+                            .attr("fill", "#777")
+                            .text(p.name);
+                    });
+                } else {
+                    prequelLinkGroup.attr("opacity", 0);
+                }
+            }
+
             function renderNodes() {
                 nodeGroup.selectAll("*").remove();
                 data.scenes.forEach((s) => {
@@ -442,14 +657,25 @@
                         .attr("r", 18)
                         .attr("fill", getNodeColor(s))
                         .attr("opacity", 0.9)
-                        .on("mouseenter", (event) => {
+                        .on("mouseenter", () => {
                             let techInfo = "";
                             const techs = data.sceneTechniques[s.id];
-                            if (techs && techs.length > 0) {
+                            if (techs && techs.length > 0)
                                 techInfo =
                                     "<br/><b>手法：</b>" + techs.join("、");
+
+                            // Prequel refs
+                            const preqRefs = data.prequels.filter(
+                                (pq) => pq.refBy && pq.refBy.includes(s.id),
+                            );
+                            if (preqRefs.length > 0) {
+                                techInfo += "<br/><b>前传：</b>";
+                                preqRefs.forEach((pq, i) => {
+                                    if (i > 0) techInfo += "<br/>";
+                                    techInfo += `${pq.id} ${pq.name}`;
+                                });
                             }
-                            // Find outgoing technique edges
+
                             const outEdges = data.edges.filter(
                                 (e) => e.from === s.id && e.technique,
                             );
@@ -460,6 +686,7 @@
                                     techInfo += `${e.technique} → ${e.to}（${e.note || ""}）`;
                                 });
                             }
+
                             tooltip
                                 .style("opacity", 1)
                                 .html(
@@ -475,7 +702,6 @@
                         .attr("text-anchor", "middle")
                         .attr("class", "sub")
                         .text(s.sub);
-
                     g.append("text")
                         .attr("y", 4)
                         .attr("text-anchor", "middle")
@@ -486,7 +712,6 @@
                 });
             }
 
-            // Legend
             function renderLegend() {
                 const legendEl = document.getElementById("legend");
                 legendEl.innerHTML = "";
@@ -497,13 +722,23 @@
                         item.innerHTML = `<div class="legend-color" style="background:${p.color}"></div> ${p.name}`;
                         legendEl.appendChild(item);
                     });
-                } else {
+                } else if (mode === "technique") {
                     Object.entries(techniqueColor).forEach(([name, color]) => {
                         const item = document.createElement("div");
                         item.className = "legend-item";
                         item.innerHTML = `<div class="legend-color" style="background:${color}"></div> ${name}`;
                         legendEl.appendChild(item);
                     });
+                } else {
+                    // iceberg
+                    const s = document.createElement("div");
+                    s.className = "legend-item";
+                    s.innerHTML = `<div class="legend-color" style="background:#4A90D9"></div> 水面之上（写出的场景）`;
+                    legendEl.appendChild(s);
+                    const p = document.createElement("div");
+                    p.className = "legend-item";
+                    p.innerHTML = `<div class="legend-color" style="background:${prequelColor};opacity:0.4"></div> 水面之下（前传）`;
+                    legendEl.appendChild(p);
                 }
             }
 
@@ -514,6 +749,7 @@
                 });
                 renderNodes();
                 renderEdges();
+                renderPrequels();
                 renderLegend();
             }
 
@@ -525,6 +761,7 @@
 
             renderNodes();
             renderEdges();
+            renderPrequels();
             renderLegend();
         </script>
     </body>
