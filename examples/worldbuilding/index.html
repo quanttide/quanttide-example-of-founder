@@ -2,96 +2,123 @@
 <meta charset="utf-8">
 <title>世界观抽取结果</title>
 <style>
-body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; color: #222; }
 h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: .25rem; }
-h2 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .5rem; padding-bottom: .25rem; border-bottom: 1px solid #ddd; }
-h3 { font-size: .9rem; font-weight: 600; margin: .75rem 0 .25rem; }
-p, li { font-size: .9rem; line-height: 1.6; margin: .25rem 0; }
-ul { margin: .25rem 0; padding-left: 1.2rem; }
-li { margin: .15rem 0; }
-.source { font-size: .8rem; color: #888; margin-bottom: 1rem; }
-.tag { display: inline-block; font-size: .8rem; padding: .1rem .5rem; border-radius: 3px; margin: .15rem; }
+.source { font-size: .8rem; color: #888; margin-bottom: 1.5rem; }
+
+.row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+.col { flex: 1; min-width: 0; }
+.col-header { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #aaa; margin-bottom: .4rem; }
+.card { background: #f9f9f9; border-radius: 6px; padding: .75rem; }
+h3 { font-size: .9rem; font-weight: 600; margin: 0 0 .4rem; }
+p { font-size: .85rem; line-height: 1.5; margin: .2rem 0; }
+.tag { display: inline-block; font-size: .75rem; padding: .1rem .45rem; border-radius: 3px; margin: .1rem; }
 .tag-green { background: #e8f5e9; color: #2e7d32; }
 .tag-blue { background: #e3f2fd; color: #1565c0; }
 .tag-orange { background: #fff3e0; color: #e65100; }
 .tag-purple { background: #f3e5f5; color: #7b1fa2; }
-.card { background: #f9f9f9; border-radius: 6px; padding: .75rem; margin: .5rem 0; }
-.card + .card { margin-top: .5rem; }
 </style>
 
 <h1>🌊 世界观抽取结果</h1>
 <p class="source">来源：职场言情/4_改稿/8_1_海边再散步.md</p>
 
-<h2>人物 · Characters</h2>
-<div class="card">
-  <h3>陆知微</h3>
-  <p><span class="tag tag-green">恋人</span> <span class="tag tag-blue">温柔、感性、容易感动</span></p>
-  <p><strong>动机：</strong>珍惜与林远亭的感情，弥补过去的遗憾</p>
-  <p><strong>弧光：</strong>从自卑到自信</p>
-</div>
-<div class="card">
-  <h3>林远亭</h3>
-  <p><span class="tag tag-green">恋人</span> <span class="tag tag-blue">温柔、细腻、善于表达</span></p>
-  <p><strong>动机：</strong>与陆知微在一起，解开过去的心结</p>
-  <p><strong>弧光：</strong>从孤独到被治愈</p>
-</div>
-
-<h2>关系 · Relationship</h2>
-<div class="card">
-  <p><span class="tag tag-purple">恋人</span></p>
-  <p><strong>动态：</strong>互相治愈、珍惜彼此</p>
-  <p><strong>张力：</strong>过去十年的错过和自卑</p>
-</div>
-
-<h2>场景 · Setting</h2>
-<div class="card">
-  <p><strong>海边栈桥</strong> — <span class="tag tag-orange">温暖、宁静、幸福</span></p>
-  <p>两人关系确认后的甜蜜场景，也是过去林远亭独自忧郁的地方</p>
-</div>
-
-<h2>情感地理 · Emotional Geography</h2>
-<div class="card">
-  <p><strong>海边栈桥</strong> — 幸福、不真实感</p>
-  <p>两人牵手散步，享受当下</p>
-</div>
-<div class="card">
-  <p><strong>海边</strong> — 忧郁、思念</p>
-  <p>林远亭过去心情不好时来海边想心事和想陆知微</p>
+<div class="row">
+  <div class="col">
+    <p class="col-header">直取 · 人物</p>
+    <div class="card">
+      <h3>陆知微</h3>
+      <p><span class="tag tag-green">恋人</span> <span class="tag tag-blue">温柔、感性、容易感动</span></p>
+      <p><strong>动机：</strong>珍惜与林远亭的感情，弥补过去的遗憾</p>
+      <p><strong>弧光：</strong>从自卑到自信</p>
+    </div>
+    <div class="card" style="margin-top:.5rem">
+      <h3>林远亭</h3>
+      <p><span class="tag tag-green">恋人</span> <span class="tag tag-blue">温柔、细腻、善于表达</span></p>
+      <p><strong>动机：</strong>与陆知微在一起，解开过去的心结</p>
+      <p><strong>弧光：</strong>从孤独到被治愈</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="col-header">分析 · 关系</p>
+    <div class="card">
+      <p><span class="tag tag-purple">恋人</span></p>
+      <p><strong>动态：</strong>互相治愈、珍惜彼此</p>
+      <p><strong>张力：</strong>过去十年的错过和自卑</p>
+    </div>
+  </div>
 </div>
 
-<h2>时间线 · Timeline</h2>
-<div class="card">
-  <p><span class="tag tag-green">现在</span> 两人在海边栈桥散步，对话</p>
-  <p>确认感情，解开过去心结</p>
-</div>
-<div class="card">
-  <p><span class="tag tag-blue">过去</span> 林远亭常来海边想心事和想陆知微</p>
-  <p>形成自卑和思念</p>
-</div>
-<div class="card">
-  <p><span class="tag tag-blue">过去</span> 陆知微在背后看林远亭的背影</p>
-  <p>让林远亭感到被陪伴，解开孤独心结</p>
-</div>
-
-<h2>主题 · Themes</h2>
-<div class="card">
-  <p><strong>治愈与救赎</strong></p>
-  <p>林远亭的心结被陆知微一句话解开，两人互相温暖</p>
-</div>
-<div class="card">
-  <p><strong>错过的时光</strong></p>
-  <p>后悔错过十年，但最终走到一起</p>
+<div class="row">
+  <div class="col">
+    <p class="col-header">直取 · 场景</p>
+    <div class="card">
+      <p><strong>海边栈桥</strong> <span class="tag tag-orange">温暖、宁静、幸福</span></p>
+      <p>两人关系确认后的甜蜜场景，也是过去林远亭独自忧郁的地方</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="col-header">分析 · 情感地理</p>
+    <div class="card">
+      <p><strong>海边栈桥</strong> → 幸福、不真实感</p>
+      <p>两人牵手散步，享受当下</p>
+    </div>
+    <div class="card" style="margin-top:.5rem">
+      <p><strong>海边</strong> → 忧郁、思念</p>
+      <p>林远亭过去心情不好时来海边想心事和想陆知微</p>
+    </div>
+  </div>
 </div>
 
-<h2>核心张力 · Tensions</h2>
-<div class="card">
-  <p><strong>错过 vs 重逢</strong></p>
-  <p>两人过去十年互相暗恋却未相识，如今终于在一起</p>
-  <p>解决程度：已解决，但仍有遗憾</p>
+<div class="row">
+  <div class="col">
+    <p class="col-header">直取 · 时间线</p>
+    <div class="card">
+      <p><span class="tag tag-green">现在</span> 两人在海边栈桥散步，对话</p>
+      <p>确认感情，解开过去心结</p>
+    </div>
+    <div class="card" style="margin-top:.5rem">
+      <p><span class="tag tag-blue">过去</span> 林远亭常来海边想心事和想陆知微</p>
+      <p>形成自卑和思念</p>
+    </div>
+    <div class="card" style="margin-top:.5rem">
+      <p><span class="tag tag-blue">过去</span> 陆知微在背后看林远亭的背影</p>
+      <p>让林远亭感到被陪伴，解开孤独心结</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="col-header">分析 · 核心张力</p>
+    <div class="card">
+      <p><strong>错过 vs 重逢</strong></p>
+      <p>两人过去十年互相暗恋却未相识，如今终于在一起</p>
+      <p><span style="font-size:.8rem;color:#888">已解决，但仍有遗憾</span></p>
+    </div>
+    <div class="card" style="margin-top:.5rem">
+      <p><strong>自卑 vs 勇气</strong></p>
+      <p>林远亭过去觉得自己不配，陆知微也以为只能看背影</p>
+      <p><span style="font-size:.8rem;color:#888">通过对话和表白得到缓解</span></p>
+    </div>
+  </div>
 </div>
-<div class="card">
-  <p><strong>自卑 vs 勇气</strong></p>
-  <p>林远亭过去觉得自己不配，陆知微也以为只能看背影</p>
-  <p>解决程度：通过对话和表白得到缓解</p>
+
+<div class="row">
+  <div class="col">
+    <p class="col-header">直取 · 原文</p>
+    <div class="card">
+      <p style="font-style:italic;color:#555">"那天其实我很吃惊。原来我那个时候从来不是一个人。"</p>
+      <p style="font-style:italic;color:#555">"当时的心结就这样被你一句话解开了。"</p>
+    </div>
+  </div>
+  <div class="col">
+    <p class="col-header">分析 · 主题</p>
+    <div class="card">
+      <p><strong>治愈与救赎</strong></p>
+      <p>林远亭的心结被陆知微一句话解开，两人互相温暖</p>
+    </div>
+    <div class="card" style="margin-top:.5rem">
+      <p><strong>错过的时光</strong></p>
+      <p>后悔错过十年，但最终走到一起</p>
+    </div>
+  </div>
 </div>
 </html>
