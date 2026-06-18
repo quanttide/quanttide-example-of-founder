@@ -1,0 +1,19 @@
+motif:
+  description: 母题 — 叙事中重复出现的具体模式（不包含抽象主题）
+  fields:
+    - name: name
+      type: string
+      description: 母题名称
+    - name: type
+      type: enum
+      values: [image, plot, character]
+      description: 意象 / 情节模式 / 人物行为模式
+    - name: sub_type
+      type: string
+      description: 子类型标签
+    - name: description
+      type: string
+      description: 母题描述
+    - name: excerpt
+      type: string
+      description: 能体现该母题的原文片段

@@ -51,35 +51,23 @@ timeline:
   impact: 让林远亭感到被陪伴，解开孤独心结
   period: 过去
 motifs:
-- description: 情侣在海边栈桥散步，阳光海面营造浪漫氛围
+- description: 情侣牵手在海边漫步，阳光海景反复出现
   excerpt: 陆知微被林远亭牵着手，在海边的栈桥上漫步。下午的阳光很好，海面被阳光照的碧蓝。
   id: m-001
-  name: 海边漫步
+  name: 海边散步
   sub_type: 自然场景
   type: image
-- description: 后悔错过十年，未能早点相识相知
-  excerpt: 后悔我们错过了十年。后悔我没有鼓起勇气认识你。
-  id: m-002
-  name: 错过与遗憾
-  sub_type: 时间流逝
-  type: theme
-- description: 一方在对方不知情时默默陪伴，给予支持
+- description: 一方在对方不知情时默默陪伴
   excerpt: 我没想到，我最爱的女孩子，在我最难过的时候偷偷在我身后陪我。
-  id: m-003
+  id: m-002
   name: 默默守护
   sub_type: 情感支持
   type: character
-- description: 觉得自己不配拥有爱情，缺乏勇气
-  excerpt: 那个时候的自己总觉得自己不配。
-  id: m-004
-  name: 自我怀疑
-  sub_type: 自卑心理
-  type: theme
-- description: 通过对话表达深情，化解心结
-  excerpt: 那天其实我很吃惊。原来我那个时候从来不是一个人。
-  id: m-005
-  name: 温柔告白
-  sub_type: 情感表达
+- description: 通过对话中的坦白化解心结
+  excerpt: 当时的心结就这样被你一句话解开了。
+  id: m-003
+  name: 坦白化解
+  sub_type: 对话推进
   type: plot
 style:
   name: 抒情对话体
