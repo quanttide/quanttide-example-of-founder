@@ -1,0 +1,149 @@
+# 世界观模型 — 从小说中抽取结构化世界观要素
+# 实验 3.1: CLI 抽取 → 世界观图谱
+#
+# 用法: qtadmin knowl extract --type worldbuilding \
+#   --input fiction.yaml --model ontology.yaml --output out/
+
+worldbuilding:
+  description: 世界观 — 虚构世界的结构化要素，含宇宙规则、地理、社会、神秘体系等
+  fields:
+    - name: cosmology
+      type: array
+      description: 宇宙观 — 世界的基本规则和本源
+      items:
+        type: object
+        fields:
+          - name: name
+            type: string
+            description: 宇宙规则名称
+          - name: nature
+            type: string
+            description: 规则本质描述
+          - name: source
+            type: string
+            description: 力量/规则来源
+          - name: limitation
+            type: string | null
+            description: 限制或代价
+          - name: era
+            type: string
+            description: 纪元或时代背景
+
+    - name: geography
+      type: array
+      description: 地理 — 地理位置、区域、特征
+      items:
+        type: object
+        fields:
+          - name: name
+            type: string
+            description: 地名
+          - name: type
+            type: enum
+            values: [region, settlement, landmark, natural_feature, ruin]
+            description: 地理类型
+          - name: description
+            type: string
+            description: 描述
+          - name: significance
+            type: string
+            description: 重要性
+
+    - name: societies
+      type: array
+      description: 社会组织 — 政权、组织、文化群体
+      items:
+        type: object
+        fields:
+          - name: name
+            type: string
+            description: 组织/社会名称
+          - name: type
+            type: enum
+            values: [faction, settlement_council, guild, cult, tribe]
+            description: 组织类型
+          - name: values
+            type: string
+            description: 核心价值观或目标
+          - name: tension
+            type: string
+            description: 内部张力或矛盾
+
+    - name: characters
+      type: array
+      description: 人物 — 重要角色的身份、动机与关系
+      items:
+        type: object
+        fields:
+          - name: name
+            type: string
+            description: 角色名
+          - name: role
+            type: string
+            description: 角色身份/头衔
+          - name: motivation
+            type: string
+            description: 核心动机
+          - name: conflict
+            type: string | null
+            description: 面临的矛盾
+          - name: arc
+            type: string
+            description: 角色弧光方向
+
+    - name: magic_system
+      type: array
+      description: 神秘体系 — 超自然力量及其运作方式
+      items:
+        type: object
+        fields:
+          - name: name
+            type: string
+            description: 体系名称
+          - name: source
+            type: string
+            description: 力量来源
+          - name: practice
+            type: string
+            description: 使用方式
+          - name: cost
+            type: string | null
+            description: 代价或消耗
+          - name: limitation
+            type: string | null
+            description: 限制
+
+    - name: history
+      type: array
+      description: 历史 — 关键事件与背景
+      items:
+        type: object
+        fields:
+          - name: event
+            type: string
+            description: 事件名称
+          - name: era
+            type: string
+            description: 发生年代
+          - name: impact
+            type: string
+            description: 影响或后果
+          - name: referenced_by
+            type: string
+            description: 被谁提及或关联
+
+    - name: tensions
+      type: array
+      description: 核心张力 — 推动故事的世界级矛盾
+      items:
+        type: object
+        fields:
+          - name: axis
+            type: string
+            description: 张力轴 (如 传统vs变革, 生存vs探索)
+          - name: description
+            type: string
+            description: 张力描述
+          - name: stakes
+            type: string
+            description: 赌注
