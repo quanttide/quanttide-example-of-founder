@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>场景关系图</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, "Microsoft YaHei", sans-serif;
+                background: #f8f9fa;
+                padding: 40px;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                margin-bottom: 8px;
+                font-size: 24px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #888;
+                margin-bottom: 32px;
+                font-size: 14px;
+            }
+            svg {
+                display: block;
+                margin: 0 auto;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            }
+            .link {
+                fill: none;
+                stroke-width: 2;
+            }
+            .link-label {
+                font-size: 11px;
+                fill: #888;
+            }
+            .node circle {
+                stroke: #fff;
+                stroke-width: 2.5;
+                cursor: pointer;
+                transition: r 0.15s;
+            }
+            .node circle:hover {
+                r: 22;
+            }
+            .node text {
+                font-size: 12px;
+                fill: #333;
+                pointer-events: none;
+            }
+            .node .sub {
+                font-size: 10px;
+                fill: #888;
+            }
+            .legend {
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                margin-top: 20px;
+                flex-wrap: wrap;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 13px;
+                color: #555;
+            }
+            .legend-color {
+                width: 14px;
+                height: 14px;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>场景关系图</h1>
+        <p class="subtitle">鼠标悬停节点查看场景间引用关系</p>
+        <div id="chart"></div>
+        <div class="legend" id="legend"></div>
+
+        <script>
+            const data = {
+                phases: [
+                    { name: "初遇期", color: "#4A90D9" },
+                    { name: "靠近期", color: "#50B86C" },
+                    { name: "升温期", color: "#F5A623" },
+                    { name: "转折期", color: "#E8654B" },
+                    { name: "日常期", color: "#9B59B6" },
+                ],
+                scenes: [
+                    {
+                        id: "1_1",
+                        name: "咖啡厅重逢",
+                        phase: "初遇期",
+                        sub: "十年后初遇",
+                    },
+                    {
+                        id: "1_2",
+                        name: "深夜失眠",
+                        phase: "初遇期",
+                        sub: "重逢后失眠",
+                    },
+                    {
+                        id: "2_1",
+                        name: "展会再遇",
+                        phase: "靠近期",
+                        sub: "工作场合重逢",
+                    },
+                    {
+                        id: "2_3",
+                        name: "傍晚小龙虾",
+                        phase: "靠近期",
+                        sub: "展会后晚餐",
+                    },
+                    {
+                        id: "4_1",
+                        name: "便利店谈心",
+                        phase: "靠近期",
+                        sub: "深夜倾诉",
+                    },
+                    {
+                        id: "4_2",
+                        name: "夜市约会",
+                        phase: "靠近期",
+                        sub: "雨夜逛夜市",
+                    },
+                    {
+                        id: "4_3",
+                        name: "互相问早",
+                        phase: "靠近期",
+                        sub: "清晨问候",
+                    },
+                    {
+                        id: "5_1",
+                        name: "家里吃火锅",
+                        phase: "升温期",
+                        sub: "第一次到家里",
+                    },
+                    {
+                        id: "6_2",
+                        name: "海边散步",
+                        phase: "升温期",
+                        sub: "分享过去伤痛",
+                    },
+                    {
+                        id: "7_1",
+                        name: "酒吧表白",
+                        phase: "转折期",
+                        sub: "醉酒告白",
+                    },
+                    {
+                        id: "7_2",
+                        name: "公园拥抱",
+                        phase: "转折期",
+                        sub: "确认关系",
+                    },
+                    {
+                        id: "8_1",
+                        name: "海边再散步",
+                        phase: "日常期",
+                        sub: "在一起后重游",
+                    },
+                    {
+                        id: "10_1",
+                        name: "书房陪伴",
+                        phase: "日常期",
+                        sub: "发现十年书信",
+                    },
+                    {
+                        id: "10_2",
+                        name: "客厅看剧",
+                        phase: "日常期",
+                        sub: "日常窝沙发",
+                    },
+                    {
+                        id: "10_3",
+                        name: "阳台看星星",
+                        phase: "日常期",
+                        sub: "阳台夜话",
+                    },
+                ],
+                edges: [
+                    { from: "1_1", to: "1_2", type: "延续" },
+                    { from: "1_1", to: "2_1", type: "延续" },
+                    { from: "1_1", to: "4_1", type: "延续" },
+                    { from: "1_1", to: "5_1", type: "延续" },
+                    { from: "2_1", to: "2_3", type: "延续" },
+                    { from: "4_1", to: "4_2", type: "延续" },
+                    { from: "4_2", to: "4_3", type: "延续" },
+                    { from: "6_2", to: "8_1", type: "呼应" },
+                    { from: "7_1", to: "7_2", type: "延续" },
+                    { from: "7_2", to: "8_1", type: "延续" },
+                    { from: "8_1", to: "10_1", type: "延续" },
+                    { from: "10_1", to: "10_2", type: "延续" },
+                    { from: "10_2", to: "10_3", type: "延续" },
+                ],
+            };
+
+            const width = 1100,
+                height = 620;
+            const margin = { top: 60, bottom: 60, left: 80, right: 80 };
+            const innerW = width - margin.left - margin.right;
+            const innerH = height - margin.top - margin.bottom;
+
+            const phaseNames = data.phases.map((p) => p.name);
+            const phaseColor = {};
+            data.phases.forEach((p) => (phaseColor[p.name] = p.color));
+
+            const timelineOrder = data.scenes.map((s) => s.id);
+
+            const sceneMap = {};
+            data.scenes.forEach((s) => (sceneMap[s.id] = s));
+
+            // Position: x by timeline index, y by phase
+            const phaseIndex = {};
+            phaseNames.forEach((n, i) => (phaseIndex[n] = i));
+
+            const positions = {};
+            data.scenes.forEach((s, i) => {
+                positions[s.id] = {
+                    x: margin.left + (i / (data.scenes.length - 1)) * innerW,
+                    y:
+                        margin.top +
+                        (phaseIndex[s.phase] / (phaseNames.length - 1)) *
+                            innerH,
+                };
+            });
+
+            const svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            // Phase background bands
+            phaseNames.forEach((name, pi) => {
+                const y0 =
+                    margin.top + (pi / (phaseNames.length - 1)) * innerH - 28;
+                const y1 =
+                    margin.top + (pi / (phaseNames.length - 1)) * innerH + 28;
+                svg.append("rect")
+                    .attr("x", margin.left)
+                    .attr("y", y0)
+                    .attr("width", innerW)
+                    .attr("height", y1 - y0)
+                    .attr("fill", phaseColor[name])
+                    .attr("opacity", 0.06)
+                    .attr("rx", 6);
+                svg.append("text")
+                    .attr("x", margin.left - 10)
+                    .attr("y", (y0 + y1) / 2 + 4)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", 13)
+                    .attr("fill", phaseColor[name])
+                    .attr("font-weight", "bold")
+                    .text(name);
+            });
+
+            // Edges
+            const edgeGroup = svg.append("g");
+            data.edges.forEach((e) => {
+                const from = positions[e.from];
+                const to = positions[e.to];
+                if (!from || !to) return;
+
+                const dx = to.x - from.x,
+                    dy = to.y - from.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const r = 18;
+                const nx = dx / dist,
+                    ny = dy / dist;
+                const x1 = from.x + nx * r,
+                    y1 = from.y + ny * r;
+                const x2 = to.x - nx * r,
+                    y2 = to.y - ny * r;
+
+                // Arrow marker
+                const midX = (x1 + x2) / 2,
+                    midY = (y1 + y2) / 2;
+
+                edgeGroup
+                    .append("line")
+                    .attr("x1", x1)
+                    .attr("y1", y1)
+                    .attr("x2", x2)
+                    .attr("y2", y2)
+                    .attr("class", "link")
+                    .attr("stroke", "#bbb")
+                    .attr(
+                        "stroke-dasharray",
+                        e.type === "呼应" ? "6,4" : "none",
+                    )
+                    .attr("marker-end", "url(#arrow)");
+
+                // Arrowhead
+                const arrowLen = 10,
+                    arrowWidth = 5;
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                const ax = x2,
+                    ay = y2;
+                svg.append("polygon")
+                    .attr(
+                        "points",
+                        `${ax},${ay} ${ax - arrowLen * Math.cos(angle - 0.35)},${ay - arrowLen * Math.sin(angle - 0.35)} ${ax - arrowLen * Math.cos(angle + 0.35)},${ay - arrowLen * Math.sin(angle + 0.35)}`,
+                    )
+                    .attr("fill", "#bbb");
+
+                // Edge label
+                edgeGroup
+                    .append("text")
+                    .attr("x", midX + 8)
+                    .attr("y", midY - 4)
+                    .attr("class", "link-label")
+                    .text(e.type);
+            });
+
+            // Nodes
+            const nodeGroup = svg.append("g");
+            data.scenes.forEach((s) => {
+                const p = positions[s.id];
+                const g = nodeGroup
+                    .append("g")
+                    .attr("class", "node")
+                    .attr("transform", `translate(${p.x},${p.y})`);
+
+                g.append("circle")
+                    .attr("r", 18)
+                    .attr("fill", phaseColor[s.phase])
+                    .attr("opacity", 0.9);
+
+                g.append("text")
+                    .attr("y", -10)
+                    .attr("text-anchor", "middle")
+                    .attr("class", "sub")
+                    .text(s.sub);
+
+                g.append("text")
+                    .attr("y", 4)
+                    .attr("text-anchor", "middle")
+                    .attr("font-weight", "bold")
+                    .attr("font-size", 13)
+                    .attr("fill", "#fff")
+                    .text(s.id);
+
+                // Tooltip on hover
+                g.append("title").text(
+                    `${s.id} ${s.name}\n${s.sub}\n阶段：${s.phase}`,
+                );
+            });
+
+            // Legend
+            const legendEl = document.getElementById("legend");
+            data.phases.forEach((p) => {
+                const item = document.createElement("div");
+                item.className = "legend-item";
+                item.innerHTML = `<div class="legend-color" style="background:${p.color}"></div> ${p.name}`;
+                legendEl.appendChild(item);
+            });
+        </script>
+    </body>
+</html>
