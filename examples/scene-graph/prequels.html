@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>前传纠缠深度</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f8f9fa; padding: 40px; }
+h1 { text-align: center; color: #333; font-size: 22px; }
+.subtitle { text-align: center; color: #888; font-size: 13px; margin: 4px 0 24px; }
+.nav { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
+.nav a { padding: 6px 14px; border-radius: 6px; font-size: 13px; text-decoration: none; color: #888; background: #eee; }
+.nav a.active { background: #333; color: #fff; }
+.chart-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); padding: 24px; max-width: 1060px; margin: 0 auto; }
+svg { display: block; margin: 0 auto; }
+.legend { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #666; margin-top: 16px; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.tooltip { position: absolute; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; pointer-events: none; opacity: 0; z-index: 100; }
+</style>
+</head>
+<body>
+<h1>前传纠缠深度</h1>
+<p class="subtitle">每个前传连接哪些现在场景、纠缠深度</p>
+<div class="nav">
+  <a href="axes.html">主题轴</a>
+  <a href="techniques.html">手法</a>
+  <a href="carriers.html">情感载体</a>
+  <a href="prequels.html" class="active">前传</a>
+</div>
+<div class="chart-wrap">
+  <div id="chart"></div>
+  <div class="legend" id="legend"></div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const scenes = [
+  { id:"1_1", n:"咖啡厅重逢" }, { id:"1_2", n:"深夜失眠" }, { id:"2_1", n:"展会再遇" },
+  { id:"2_3", n:"傍晚小龙虾" }, { id:"4_1", n:"便利店谈心" }, { id:"4_2", n:"夜市约会" },
+  { id:"4_3", n:"互相问早" }, { id:"5_1", n:"家里吃火锅" }, { id:"6_2", n:"海边散步" },
+  { id:"7_1", n:"酒吧表白" }, { id:"7_2", n:"公园拥抱" }, { id:"8_1", n:"海边再散步" },
+  { id:"10_1", n:"书房陪伴" }, { id:"10_2", n:"客厅看剧" }, { id:"10_3", n:"阳台看星星" }
+];
+const prequels = [
+  { id:"P1", n:"毕业晚会", det:"他在台下看她的古典舞", targets:[1,8], d:"独白式", c:"#A29BFE" },
+  { id:"P2", n:"公开演讲", det:"她在台下听他的演讲", targets:[4], d:"独白式", c:"#A29BFE" },
+  { id:"P3", n:"大四聚餐", det:"两桌人在同一家餐厅", targets:[7], d:"独白式", c:"#A29BFE" },
+  { id:"P4", n:"海边深夜", det:"他写信，她在身后看", targets:[0,8,11], d:"延迟揭示", c:"#FDCB6E" },
+  { id:"P5", n:"醉酒坦白", det:"被朋友问出心里话", targets:[0,9,12], d:"回响式", c:"#E17055" },
+  { id:"P6", n:"朋友圈十年", det:"屏幕后的十年关注", targets:[0,5], d:"背景式", c:"#74B9FF" },
+  { id:"P7", n:"读他的代码", det:"'干净到每个模块都是教科书'", targets:[2], d:"独白式", c:"#A29BFE" },
+];
+const depthLabel = { "独白式":"单次引用", "延迟揭示":"多次揭示", "回响式":"反复回响", "背景式":"持续底色" };
+
+const w = 1000, h = 340, m = { t: 30, l: 160, r: 30, b: 20 };
+const iw = w - m.l - m.r;
+
+const sx = scenes.map((_, i) => m.l + (i / (scenes.length-1)) * iw);
+
+const svg = d3.select("#chart").append("svg").attr("width", w).attr("height", h);
+const tip = d3.select("#tooltip");
+
+// Scene column headers
+scenes.forEach((s, i) => {
+  const x = sx[i];
+  svg.append("line").attr("x1", x).attr("y1", m.t - 2).attr("x2", x).attr("y2", m.t + prequels.length * 40 + 8)
+    .attr("stroke", "#f0f0f0").attr("stroke-width", 0.5);
+  svg.append("text").attr("x", x).attr("y", m.t - 6).attr("text-anchor", "middle")
+    .attr("font-size", 9).attr("fill", "#999").text(s.id);
+});
+
+// Prequel rows
+prequels.forEach((p, pi) => {
+  const y = m.t + 14 + pi * 40;
+
+  // Depth-colored left bar
+  svg.append("rect").attr("x", m.l - 12).attr("y", y - 8).attr("width", 4).attr("height", 20)
+    .attr("fill", p.c).attr("rx", 2);
+
+  // Prequel name
+  svg.append("text").attr("x", m.l - 18).attr("y", y + 4).attr("text-anchor", "end")
+    .attr("font-size", 12).attr("fill", "#333").attr("font-weight", "bold").text(`${p.id} ${p.n}`);
+
+  svg.append("text").attr("x", m.l - 18).attr("y", y + 18).attr("text-anchor", "end")
+    .attr("font-size", 9).attr("fill", "#aaa").text(depthLabel[p.d]);
+
+  // Lines to scenes
+  p.targets.forEach(ti => {
+    const x = sx[ti];
+    svg.append("line").attr("x1", m.l - 8).attr("y1", y).attr("x2", x).attr("y2", y)
+      .attr("stroke", p.c).attr("stroke-width", 1.5).attr("stroke-dasharray", "4,3").attr("opacity", 0.4);
+
+    // Connection dot
+    svg.append("circle").attr("cx", x).attr("cy", y).attr("r", 4)
+      .attr("fill", p.c).attr("opacity", 0.6);
+  });
+
+  // Scene name labels at first connection
+  const firstTarget = p.targets[0];
+  if (firstTarget !== undefined) {
+    const x = sx[firstTarget];
+    svg.append("text").attr("x", x + 8).attr("y", y + 4).attr("font-size", 10)
+      .attr("fill", p.c).text(scenes[firstTarget].n);
+  }
+
+  // Hover
+  svg.append("rect").attr("x", m.l - 20).attr("y", y - 10).attr("width", iw + 10).attr("height", 24)
+    .attr("fill", "transparent")
+    .on("mouseenter", () => {
+      const targets = p.targets.map(t => scenes[t].id).join(", ");
+      tip.style("opacity", 1).html(`<b>${p.id} ${p.n}</b><br>${p.det}<br>${depthLabel[p.d]}<br>出现在：${targets}`)
+        .style("left", (d3.event.pageX + 12) + "px").style("top", (d3.event.pageY - 10) + "px");
+    })
+    .on("mouseleave", () => tip.style("opacity", 0));
+});
+
+d3.select("#legend").html(
+  Object.entries(depthLabel).map(([k,v]) =>
+    `<span class="legend-item"><span class="legend-dot" style="background:${{"独白式":"#A29BFE","延迟揭示":"#FDCB6E","回响式":"#E17055","背景式":"#74B9FF"}[k]}"></span> ${k}（${v}）</span>`
+  ).join("")
+);
+</script>
+</body>
+</html>
