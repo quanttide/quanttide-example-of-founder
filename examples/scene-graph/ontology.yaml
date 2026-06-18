@@ -50,7 +50,10 @@ scene_graph:
                   description: 引用类型：callback=前文回调，backstory=角色过往，off_screen=文本未覆盖的前传
                 - name: content
                   type: string
-                  description: 被引用的具体内容
+                  description: 被引用事件的概括
+                - name: excerpt
+                  type: string
+                  description: 原文中提及该引用的原句（逐字引用原文）
 
     - name: timeline_relationship
       type: array
@@ -86,3 +89,9 @@ scene_graph:
           - name: carried_by
             type: string
             description: 这种对比被谁察觉
+          - name: excerpt_past
+            type: string
+            description: 原文中描述过去情感的句子
+          - name: excerpt_present
+            type: string
+            description: 原文中描述现在情感的句子
