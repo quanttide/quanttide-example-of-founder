@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>感官密度</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f8f9fa;padding:40px}
+h1{text-align:center;color:#333;font-size:22px}
+.subtitle{text-align:center;color:#888;font-size:13px;margin:4px 0 24px}
+.nav{display:flex;justify-content:center;gap:6px;margin-bottom:24px}
+.nav a{padding:6px 14px;border-radius:6px;font-size:13px;text-decoration:none;color:#888;background:#eee}
+.nav a.active{background:#333;color:#fff}
+.chart-wrap{background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.06);padding:24px;max-width:1060px;margin:0 auto}
+svg{display:block;margin:0 auto}
+.legend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:12px;color:#666;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.legend-line{width:20px;height:3px;border-radius:2px}
+.tooltip{position:absolute;background:rgba(0,0,0,0.85);color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;pointer-events:none;opacity:0;z-index:100}
+</style>
+</head>
+<body>
+<h1>感官密度</h1>
+<p class="subtitle">每个场景活跃的感官通道</p>
+<div class="nav">
+  <a href="axes.html">主题轴</a>
+  <a href="techniques.html">手法</a>
+  <a href="carriers.html">情感载体</a>
+  <a href="prequels.html">前传</a>
+  <a href="senses.html" class="active">感官</a>
+</div>
+<div class="chart-wrap"><div id="chart"></div><div class="legend" id="legend"></div></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const senses=["触觉","味觉","嗅觉","听觉","视觉"];
+const senseColors={触觉:"#E17055",味觉:"#FDCB6E",嗅觉:"#55E6C1",听觉:"#74B9FF",视觉:"#A29BFE"};
+
+const scenes=[
+  {id:"1_1",n:"咖啡厅重逢",s:5,senses:[1,1,1,1,1],sub:"五年"},
+  {id:"1_2",n:"深夜失眠",s:2,senses:[1,0,0,0,1],sub:"内在独白"},
+  {id:"2_1",n:"展会再遇",s:3,senses:[0,0,0,1,1],sub:"会议社交"},
+  {id:"2_3",n:"傍晚小龙虾",s:4,senses:[1,1,1,1,1],sub:"全开"},
+  {id:"4_1",n:"便利店谈心",s:4,senses:[1,1,0,1,1],sub:"身体先行"},
+  {id:"4_2",n:"夜市约会",s:4,senses:[1,1,1,0,1],sub:"夜市丰富"},
+  {id:"4_3",n:"互相问早",s:3,senses:[0,1,0,1,1],sub:"数字空间"},
+  {id:"5_1",n:"家里吃火锅",s:5,senses:[1,1,1,0,1],sub:"五感全开"},
+  {id:"6_2",n:"海边散步",s:4,senses:[1,0,1,1,1],sub:"环境交融"},
+  {id:"7_1",n:"酒吧表白",s:3,senses:[0,1,0,1,1],sub:"对话为主"},
+  {id:"7_2",n:"公园拥抱",s:2,senses:[1,0,0,1,0],sub:"聚焦触觉"},
+  {id:"8_1",n:"海边再散步",s:3,senses:[1,0,1,0,1],sub:"对话场景"},
+  {id:"10_1",n:"书房陪伴",s:3,senses:[1,0,0,1,1],sub:"触觉为主"},
+  {id:"10_2",n:"客厅看剧",s:4,senses:[1,0,0,1,1],sub:"日常高频"},
+  {id:"10_3",n:"阳台看星星",s:3,senses:[1,0,0,1,1],sub:"静谧"},
+];
+
+const W=1000,H=420,M={t:40,l:70,r:40,b:50};
+const IW=W-M.l-M.r,IH=H-M.t-M.b;
+const cellW=IW/scenes.length,cellH=IH/senses.length;
+const svg=d3.select("#chart").append("svg").attr("width",W).attr("height",H);
+const tip=d3.select("#tooltip");
+
+// Score line chart area (top portion)
+const scoreH=60;
+// Score background
+svg.append("rect").attr("x",M.l).attr("y",M.t).attr("width",IW).attr("height",scoreH)
+  .attr("fill","#fafafa").attr("rx",4);
+
+// Score labels
+svg.append("text").attr("x",M.l-8).attr("y",M.t+scoreH/2+4).attr("text-anchor","end")
+  .attr("font-size",11).attr("fill","#888").text("分数");
+
+// Score line
+const scoreScale=scenes.map((sc,i)=>({x:M.l+(i+0.5)*cellW,y:M.t+scoreH-(sc.s/5)*scoreH}));
+const lineGen=d3.line().x(d=>d.x).y(d=>d.y).curve(d3.curveMonotoneX);
+svg.append("path").attr("d",lineGen(scoreScale)).attr("fill","none")
+  .attr("stroke","#E17055").attr("stroke-width",2.5).attr("opacity",0.7);
+
+// Score dots
+scoreScale.forEach((d,i)=>{
+  svg.append("circle").attr("cx",d.x).attr("cy",d.y).attr("r",4)
+    .attr("fill","#E17055").attr("stroke","#fff").attr("stroke-width",1.5)
+    .on("mouseenter",function(){
+      const sc=scenes[i];
+      const active=senses.filter((_,si)=>sc.senses[si]).join("、");
+      tip.style("opacity",1).html(`<b>${sc.id} ${sc.n}</b><br>感官分数: ${sc.s}/5<br>活跃: ${active}<br>${sc.sub}`)
+        .style("left",(d3.event.pageX+12)+"px").style("top",(d3.event.pageY-10)+"px");
+    })
+    .on("mouseleave",()=>tip.style("opacity",0));
+});
+
+// Score labels on top
+scoreScale.forEach((d,i)=>{
+  svg.append("text").attr("x",d.x).attr("y",d.y-8).attr("text-anchor","middle")
+    .attr("font-size",10).attr("fill","#E17055").attr("font-weight","bold").text(scenes[i].s);
+});
+
+// Heatmap grid
+const gridY=M.t+scoreH+10;
+const gridH=IH-scoreH-10;
+const gridCellH=gridH/senses.length;
+
+senses.forEach((sense,si)=>{
+  const y=gridY+si*gridCellH;
+  // Sense label
+  svg.append("text").attr("x",M.l-8).attr("y",y+gridCellH/2+4).attr("text-anchor","end")
+    .attr("font-size",11).attr("fill",senseColors[sense]).attr("font-weight","bold").text(sense);
+
+  scenes.forEach((sc,ci)=>{
+    const x=M.l+ci*cellW;
+    const active=sc.senses[si];
+    svg.append("rect").attr("x",x+2).attr("y",y+2).attr("width",cellW-4).attr("height",gridCellH-4)
+      .attr("fill",active?senseColors[sense]:"#f5f5f5").attr("opacity",active?0.7:1).attr("rx",3);
+  });
+});
+
+// Scene ID labels
+scenes.forEach((sc,i)=>{
+  const x=M.l+(i+0.5)*cellW;
+  svg.append("text").attr("x",x).attr("y",gridY+gridH+16).attr("text-anchor","middle")
+    .attr("font-size",9).attr("fill","#999").text(sc.id);
+});
+
+d3.select("#legend").html(
+  `<span style="font-size:12px;color:#888;margin-right:8px">感官通道:</span>`+
+  Object.entries(senseColors).map(([k,v])=>`<span class="legend-item"><span class="legend-dot" style="background:${v}"></span>${k}</span>`).join("")
+  +`<span style="font-size:11px;color:#bbb;margin-left:12px">顶部折线=感官分数(总分5)</span>`
+);
+</script>
+</body>
+</html>
