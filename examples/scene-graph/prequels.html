@@ -106,175 +106,172 @@
         <div class="tooltip" id="tooltip"></div>
 
         <script>
-            (async function () {
-                const r = await fetch("thematic-analysis.json");
-                const data = await r.json();
+            const depthColors = {
+                独白式: "#A29BFE",
+                延迟揭示: "#FDCB6E",
+                回响式: "#E17055",
+                背景式: "#74B9FF",
+            };
+            const depthLabels = {
+                独白式: "单次引用",
+                延迟揭示: "多次揭示",
+                回响式: "反复回响",
+                背景式: "持续底色",
+            };
+            const prequels = [
+                { id: "P1", n: "毕业晚会", d: "独白式", t: [1, 8] },
+                { id: "P2", n: "公开演讲", d: "独白式", t: [4] },
+                { id: "P3", n: "大四聚餐", d: "独白式", t: [7] },
+                { id: "P4", n: "海边深夜", d: "延迟揭示", t: [0, 8, 11] },
+                { id: "P5", n: "醉酒坦白", d: "回响式", t: [0, 9, 12] },
+                { id: "P6", n: "朋友圈十年", d: "背景式", t: [0, 5] },
+                { id: "P7", n: "读他的代码", d: "独白式", t: [2] },
+            ];
+            const sceneIds = [
+                "1_1",
+                "1_2",
+                "2_1",
+                "2_3",
+                "4_1",
+                "4_2",
+                "4_3",
+                "5_1",
+                "6_2",
+                "7_1",
+                "7_2",
+                "8_1",
+                "10_1",
+                "10_2",
+                "10_3",
+            ];
+            const sceneNames = [
+                "咖啡厅重逢",
+                "深夜失眠",
+                "展会再遇",
+                "傍晚小龙虾",
+                "便利店谈心",
+                "夜市约会",
+                "互相问早",
+                "家里吃火锅",
+                "海边散步",
+                "酒吧表白",
+                "公园拥抱",
+                "海边再散步",
+                "书房陪伴",
+                "客厅看剧",
+                "阳台看星星",
+            ];
 
-                const sceneIds = data.scenes.map((s) => s.id);
-                const sceneNames = {};
-                data.scenes.forEach((s) => (sceneNames[s.id] = s.name));
+            const W = 1000,
+                H = 340,
+                M = { t: 30, l: 160, r: 30, b: 20 };
+            const IW = W - M.l - M.r;
+            const sx = sceneIds.map(
+                (_, i) => M.l + (i / (sceneIds.length - 1)) * IW,
+            );
 
-                // Build prequel rows from JSON
-                const depthColors = {
-                    独白式: "#A29BFE",
-                    延迟揭示: "#FDCB6E",
-                    回响式: "#E17055",
-                    背景式: "#74B9FF",
-                };
-                const depthLabels = {
-                    独白式: "单次引用",
-                    延迟揭示: "多次揭示",
-                    回响式: "反复回响",
-                    背景式: "持续底色",
-                };
+            const svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", W)
+                .attr("height", H);
+            const tip = d3.select("#tooltip");
 
-                const prequelRows = data.prequels.map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    det: p.name,
-                    d: p.depth,
-                    c: depthColors[p.depth] || "#A29BFE",
-                    targets: p.refBy
-                        ? p.refBy
-                              .map((id) => sceneIds.indexOf(id))
-                              .filter((i) => i >= 0)
-                        : [],
-                }));
-                // Also add entanglement-based targets from scene data
-                data.scenes.forEach((sc) => {
-                    if (!sc.prequelEntanglement) return;
-                    sc.prequelEntanglement.forEach((pe) => {
-                        const row = prequelRows.find((r) => r.id === pe.id);
-                        if (
-                            row &&
-                            !row.targets.includes(sceneIds.indexOf(sc.id))
-                        ) {
-                            row.targets.push(sceneIds.indexOf(sc.id));
-                        }
-                    });
-                });
-                // Remove P5 duplicate in 10_1 if needed, and sort
-                prequelRows.forEach((r) => {
-                    r.targets = [...new Set(r.targets)].sort((a, b) => a - b);
-                });
+            sceneIds.forEach((id, i) => {
+                const x = sx[i];
+                svg.append("line")
+                    .attr("x1", x)
+                    .attr("y1", M.t - 2)
+                    .attr("x2", x)
+                    .attr("y2", M.t + prequels.length * 40 + 8)
+                    .attr("stroke", "#f0f0f0")
+                    .attr("stroke-width", 0.5);
+                svg.append("text")
+                    .attr("x", x)
+                    .attr("y", M.t - 6)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", 9)
+                    .attr("fill", "#999")
+                    .text(id);
+            });
 
-                const W = 1000,
-                    H = 340,
-                    M = { t: 30, l: 160, r: 30, b: 20 };
-                const IW = W - M.l - M.r;
-                const sx = sceneIds.map(
-                    (_, i) => M.l + (i / (sceneIds.length - 1)) * IW,
-                );
-
-                const svg = d3
-                    .select("#chart")
-                    .append("svg")
-                    .attr("width", W)
-                    .attr("height", H);
-                const tip = d3.select("#tooltip");
-
-                // Scene column headers
-                sceneIds.forEach((id, i) => {
-                    const x = sx[i];
+            prequels.forEach((p, pi) => {
+                const y = M.t + 14 + pi * 40,
+                    c = depthColors[p.d];
+                svg.append("rect")
+                    .attr("x", M.l - 12)
+                    .attr("y", y - 8)
+                    .attr("width", 4)
+                    .attr("height", 20)
+                    .attr("fill", c)
+                    .attr("rx", 2);
+                svg.append("text")
+                    .attr("x", M.l - 18)
+                    .attr("y", y + 4)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", 12)
+                    .attr("fill", "#333")
+                    .attr("font-weight", "bold")
+                    .text(`${p.id} ${p.n}`);
+                svg.append("text")
+                    .attr("x", M.l - 18)
+                    .attr("y", y + 18)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", 9)
+                    .attr("fill", "#aaa")
+                    .text(depthLabels[p.d]);
+                p.t.forEach((ti) => {
+                    const x = sx[ti];
                     svg.append("line")
-                        .attr("x1", x)
-                        .attr("y1", M.t - 2)
+                        .attr("x1", M.l - 8)
+                        .attr("y1", y)
                         .attr("x2", x)
-                        .attr("y2", M.t + prequelRows.length * 40 + 8)
-                        .attr("stroke", "#f0f0f0")
-                        .attr("stroke-width", 0.5);
-                    svg.append("text")
-                        .attr("x", x)
-                        .attr("y", M.t - 6)
-                        .attr("text-anchor", "middle")
-                        .attr("font-size", 9)
-                        .attr("fill", "#999")
-                        .text(id);
+                        .attr("y2", y)
+                        .attr("stroke", c)
+                        .attr("stroke-width", 1.5)
+                        .attr("stroke-dasharray", "4,3")
+                        .attr("opacity", 0.4);
+                    svg.append("circle")
+                        .attr("cx", x)
+                        .attr("cy", y)
+                        .attr("r", 4)
+                        .attr("fill", c)
+                        .attr("opacity", 0.6);
                 });
-
-                prequelRows.forEach((p, pi) => {
-                    const y = M.t + 14 + pi * 40;
-                    svg.append("rect")
-                        .attr("x", M.l - 12)
-                        .attr("y", y - 8)
-                        .attr("width", 4)
-                        .attr("height", 20)
-                        .attr("fill", p.c)
-                        .attr("rx", 2);
+                const ft = p.t[0];
+                if (ft !== undefined)
                     svg.append("text")
-                        .attr("x", M.l - 18)
+                        .attr("x", sx[ft] + 8)
                         .attr("y", y + 4)
-                        .attr("text-anchor", "end")
-                        .attr("font-size", 12)
-                        .attr("fill", "#333")
-                        .attr("font-weight", "bold")
-                        .text(`${p.id} ${p.name}`);
-                    svg.append("text")
-                        .attr("x", M.l - 18)
-                        .attr("y", y + 18)
-                        .attr("text-anchor", "end")
-                        .attr("font-size", 9)
-                        .attr("fill", "#aaa")
-                        .text(depthLabels[p.d]);
+                        .attr("font-size", 10)
+                        .attr("fill", c)
+                        .text(sceneNames[ft]);
+                svg.append("rect")
+                    .attr("x", M.l - 20)
+                    .attr("y", y - 10)
+                    .attr("width", IW + 10)
+                    .attr("height", 24)
+                    .attr("fill", "transparent")
+                    .on("mouseenter", () => {
+                        const ts = p.t.map((t) => sceneIds[t]).join(", ");
+                        tip.style("opacity", 1)
+                            .html(
+                                `<b>${p.id} ${p.n}</b><br>${depthLabels[p.d]}<br>出现在：${ts}`,
+                            )
+                            .style("left", d3.event.pageX + 12 + "px")
+                            .style("top", d3.event.pageY - 10 + "px");
+                    })
+                    .on("mouseleave", () => tip.style("opacity", 0));
+            });
 
-                    p.targets.forEach((ti) => {
-                        const x = sx[ti];
-                        svg.append("line")
-                            .attr("x1", M.l - 8)
-                            .attr("y1", y)
-                            .attr("x2", x)
-                            .attr("y2", y)
-                            .attr("stroke", p.c)
-                            .attr("stroke-width", 1.5)
-                            .attr("stroke-dasharray", "4,3")
-                            .attr("opacity", 0.4);
-                        svg.append("circle")
-                            .attr("cx", x)
-                            .attr("cy", y)
-                            .attr("r", 4)
-                            .attr("fill", p.c)
-                            .attr("opacity", 0.6);
-                    });
-
-                    const ft = p.targets[0];
-                    if (ft !== undefined) {
-                        svg.append("text")
-                            .attr("x", sx[ft] + 8)
-                            .attr("y", y + 4)
-                            .attr("font-size", 10)
-                            .attr("fill", p.c)
-                            .text(sceneNames[sceneIds[ft]]);
-                    }
-
-                    svg.append("rect")
-                        .attr("x", M.l - 20)
-                        .attr("y", y - 10)
-                        .attr("width", IW + 10)
-                        .attr("height", 24)
-                        .attr("fill", "transparent")
-                        .on("mouseenter", () => {
-                            const ts = p.targets
-                                .map((t) => sceneIds[t])
-                                .join(", ");
-                            tip.style("opacity", 1)
-                                .html(
-                                    `<b>${p.id} ${p.name}</b><br>${depthLabels[p.d]}<br>出现在：${ts}`,
-                                )
-                                .style("left", d3.event.pageX + 12 + "px")
-                                .style("top", d3.event.pageY - 10 + "px");
-                        })
-                        .on("mouseleave", () => tip.style("opacity", 0));
-                });
-
-                d3.select("#legend").html(
-                    Object.entries(depthLabels)
-                        .map(
-                            ([k, v]) =>
-                                `<span class="legend-item"><span class="legend-dot" style="background:${depthColors[k]}"></span> ${k}（${v}）</span>`,
-                        )
-                        .join(""),
-                );
-            })();
+            d3.select("#legend").html(
+                Object.entries(depthLabels)
+                    .map(
+                        ([k, v]) =>
+                            `<span class="legend-item"><span class="legend-dot" style="background:${depthColors[k]}"></span>${k}（${v}）</span>`,
+                    )
+                    .join(""),
+            );
         </script>
     </body>
 </html>

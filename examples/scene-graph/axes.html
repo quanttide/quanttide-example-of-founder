@@ -82,7 +82,7 @@
     </head>
     <body>
         <h1>主题轴推进</h1>
-        <p class="subtitle">三条情感轴上的场景位置变化</p>
+        <p class="subtitle">四条情感轴上的场景位置变化</p>
         <div class="nav">
             <a href="axes.html" class="active">主题轴</a>
             <a href="techniques.html">手法</a>
@@ -96,135 +96,206 @@
         <div class="tooltip" id="tooltip"></div>
 
         <script>
-            (async function () {
-                const r = await fetch("thematic-analysis.json");
-                const data = await r.json();
+            // Data source: thematic-analysis.json (embedded for local viewing)
+            const axisData = [
+                {
+                    label: "孤独→陪伴",
+                    stages: [
+                        "独自承受",
+                        "被看见不敢回应",
+                        "得到回应",
+                        "共同面对",
+                    ],
+                    colors: ["#74B9FF", "#55E6C1", "#FDCB6E", "#E17055"],
+                },
+                {
+                    label: "猜测→确认",
+                    stages: ["完全不知", "隐约有感觉", "细节确认", "双方明确"],
+                    colors: ["#A29BFE", "#6C5CE7", "#FD79A8", "#E17055"],
+                },
+                {
+                    label: "疏离→亲密",
+                    stages: ["独处", "同一空间", "并排", "牵手", "拥抱"],
+                    colors: [
+                        "#B8E994",
+                        "#82CCDD",
+                        "#F8A5C2",
+                        "#E77F67",
+                        "#E17055",
+                    ],
+                },
+                {
+                    label: "仰望→并肩",
+                    stages: ["对方是偶像", "看见真实", "看见脆弱", "平等相对"],
+                    colors: ["#81ECEC", "#74B9FF", "#FDCB6E", "#55E6C1"],
+                },
+            ];
 
-                // Map JSON data to axes format: simplify stage names and derive scene positions
-                const axisMap = data.themeAxes.map((ax) => ({
-                    label: ax.name,
-                    stages: ax.stages.map((s) => s.replace(/，.*/, "")),
-                    colors:
-                        ax === data.themeAxes[0]
-                            ? ["#74B9FF", "#55E6C1", "#FDCB6E", "#E17055"]
-                            : ax === data.themeAxes[1]
-                              ? ["#A29BFE", "#6C5CE7", "#FD79A8", "#E17055"]
-                              : ax === data.themeAxes[2]
-                                ? [
-                                      "#B8E994",
-                                      "#82CCDD",
-                                      "#F8A5C2",
-                                      "#E77F67",
-                                      "#E17055",
-                                  ]
-                                : ["#81ECEC", "#74B9FF", "#FDCB6E", "#55E6C1"],
-                }));
+            const scenes = [
+                {
+                    id: "1_1",
+                    n: "咖啡厅重逢",
+                    pos: [0, 1, 1, 0],
+                    sub: "重逢但不敢认",
+                },
+                {
+                    id: "1_2",
+                    n: "深夜失眠",
+                    pos: [0, 1, 0, 0],
+                    sub: "整夜心跳",
+                },
+                {
+                    id: "2_1",
+                    n: "展会再遇",
+                    pos: [0, 1, 1, 0],
+                    sub: "工作场合靠近",
+                },
+                {
+                    id: "2_3",
+                    n: "傍晚小龙虾",
+                    pos: [0, 1, 1, 1],
+                    sub: "各自吐露困境",
+                },
+                {
+                    id: "4_1",
+                    n: "便利店谈心",
+                    pos: [1, 1, 2, 1],
+                    sub: "深夜破防",
+                },
+                {
+                    id: "4_2",
+                    n: "夜市约会",
+                    pos: [2, 2, 3, 1],
+                    sub: "'陪我养一个'",
+                },
+                {
+                    id: "4_3",
+                    n: "互相问早",
+                    pos: [2, 2, 0, 1],
+                    sub: "第一句早安",
+                },
+                {
+                    id: "5_1",
+                    n: "家里吃火锅",
+                    pos: [2, 2, 1, 1],
+                    sub: "Hello Kitty",
+                },
+                {
+                    id: "6_2",
+                    n: "海边散步",
+                    pos: [1, 2, 3, 1],
+                    sub: "说出当年的秘密",
+                },
+                {
+                    id: "7_1",
+                    n: "酒吧表白",
+                    pos: [3, 3, 1, 2],
+                    sub: "'喜欢了十年'",
+                },
+                {
+                    id: "7_2",
+                    n: "公园拥抱",
+                    pos: [3, 3, 4, 2],
+                    sub: "'你太苦了'",
+                },
+                {
+                    id: "8_1",
+                    n: "海边再散步",
+                    pos: [3, 3, 3, 3],
+                    sub: "牵手的海边",
+                },
+                {
+                    id: "10_1",
+                    n: "书房陪伴",
+                    pos: [3, 3, 4, 3],
+                    sub: "发现十年信",
+                },
+                { id: "10_2", n: "客厅看剧", pos: [3, 3, 4, 3], sub: "窝沙发" },
+                {
+                    id: "10_3",
+                    n: "阳台看星星",
+                    pos: [3, 3, 4, 3],
+                    sub: "见父母",
+                },
+            ];
 
-                const stageKeys = [
-                    "孤独→陪伴",
-                    "猜测→确认",
-                    "疏离→亲密",
-                    "仰望→并肩",
-                ];
-                const scenes = data.scenes.map((s) => ({
-                    id: s.id,
-                    n: s.name,
-                    pos: stageKeys.map((k) => {
-                        const txt = s.position[k];
-                        const idx = data.themeAxes[
-                            stageKeys.indexOf(k)
-                        ].stages.findIndex((st) =>
-                            txt.includes(st.slice(0, 4)),
-                        );
-                        return idx >= 0 ? idx : 0;
-                    }),
-                    sub: s.emotionalCarrier.primary.replace(/[—\-].*/, ""),
-                }));
+            const W = 1000,
+                H = 420,
+                M = { t: 26, l: 130, r: 40, b: 32 };
+            const IW = W - M.l - M.r,
+                IH = (H - M.t - M.b) / axisData.length;
+            const svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", W)
+                .attr("height", H);
+            const tip = d3.select("#tooltip");
 
-                const W = 1000,
-                    H = 420;
-                const M = { t: 26, l: 130, r: 40, b: 32 };
-                const IW = W - M.l - M.r;
-                const IH = (H - M.t - M.b) / 3;
-                const svg = d3
-                    .select("#chart")
-                    .append("svg")
-                    .attr("width", W)
-                    .attr("height", H);
-                const tip = d3.select("#tooltip");
-
-                axisMap.forEach((ax, ai) => {
-                    const y0 = M.t + ai * IH,
-                        y1 = M.t + (ai + 1) * IH,
-                        my = (y0 + y1) / 2;
-                    svg.append("text")
-                        .attr("x", M.l - 10)
-                        .attr("y", my + 4)
-                        .attr("text-anchor", "end")
-                        .attr("font-size", 13)
-                        .attr("fill", "#444")
-                        .attr("font-weight", "bold")
-                        .text(ax.label);
-
-                    const bw = IW / ax.stages.length;
-                    ax.stages.forEach((st, si) => {
-                        const bx = M.l + si * bw;
-                        svg.append("rect")
-                            .attr("x", bx)
-                            .attr("y", y0 + 8)
-                            .attr("width", bw)
-                            .attr("height", IH - 16)
+            axisData.forEach((ax, ai) => {
+                const y0 = M.t + ai * IH,
+                    my = (y0 + M.t + (ai + 1) * IH) / 2;
+                svg.append("text")
+                    .attr("x", M.l - 10)
+                    .attr("y", my + 4)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", 13)
+                    .attr("fill", "#444")
+                    .attr("font-weight", "bold")
+                    .text(ax.label);
+                const bw = IW / ax.stages.length;
+                ax.stages.forEach((st, si) => {
+                    const bx = M.l + si * bw;
+                    svg.append("rect")
+                        .attr("x", bx)
+                        .attr("y", y0 + 8)
+                        .attr("width", bw)
+                        .attr("height", IH - 16)
+                        .attr("fill", ax.colors[si])
+                        .attr("opacity", 0.08)
+                        .attr("rx", 4);
+                    if (si === 0 || si === ax.stages.length - 1) {
+                        svg.append("text")
+                            .attr("x", bx + (si === 0 ? 6 : bw - 6))
+                            .attr("y", y0 + 24)
+                            .attr("text-anchor", si === 0 ? "start" : "end")
+                            .attr("font-size", 10)
                             .attr("fill", ax.colors[si])
-                            .attr("opacity", 0.08)
-                            .attr("rx", 4);
-                        if (si === 0 || si === ax.stages.length - 1) {
-                            svg.append("text")
-                                .attr("x", bx + (si === 0 ? 6 : bw - 6))
-                                .attr("y", y0 + 24)
-                                .attr("text-anchor", si === 0 ? "start" : "end")
-                                .attr("font-size", 10)
-                                .attr("fill", ax.colors[si])
-                                .attr("font-weight", "bold")
-                                .text(st);
-                        }
-                    });
-
-                    scenes.forEach((sc, i) => {
-                        const x = M.l + (i / (scenes.length - 1)) * IW;
-                        const si = sc.pos[ai];
-                        const dy =
-                            y0 +
-                            8 +
-                            (IH - 16) * ((si + 0.5) / ax.stages.length);
-                        svg.append("circle")
-                            .attr("cx", x)
-                            .attr("cy", dy)
-                            .attr("r", 5)
-                            .attr("fill", ax.colors[si])
-                            .attr("stroke", "#fff")
-                            .attr("stroke-width", 1.5)
-                            .attr("opacity", 0.85)
-                            .on("mouseenter", function () {
-                                tip.style("opacity", 1)
-                                    .html(
-                                        `<b>${sc.id} ${sc.n}</b><br>${ax.label}：${ax.stages[si]}<br>${sc.sub}`,
-                                    )
-                                    .style("left", d3.event.pageX + 12 + "px")
-                                    .style("top", d3.event.pageY - 10 + "px");
-                            })
-                            .on("mouseleave", () => tip.style("opacity", 0));
-                        if (ai === 0) {
-                            svg.append("text")
-                                .attr("x", x)
-                                .attr("y", y0 + IH + 12)
-                                .attr("text-anchor", "middle")
-                                .attr("font-size", 9)
-                                .attr("fill", "#999")
-                                .text(sc.id);
-                        }
-                    });
+                            .attr("font-weight", "bold")
+                            .text(st);
+                    }
                 });
-            })();
+                scenes.forEach((sc, i) => {
+                    const x = M.l + (i / (scenes.length - 1)) * IW;
+                    const si = sc.pos[ai];
+                    const dy =
+                        y0 + 8 + (IH - 16) * ((si + 0.5) / ax.stages.length);
+                    svg.append("circle")
+                        .attr("cx", x)
+                        .attr("cy", dy)
+                        .attr("r", 5)
+                        .attr("fill", ax.colors[si])
+                        .attr("stroke", "#fff")
+                        .attr("stroke-width", 1.5)
+                        .attr("opacity", 0.85)
+                        .on("mouseenter", function () {
+                            tip.style("opacity", 1)
+                                .html(
+                                    `<b>${sc.id} ${sc.n}</b><br>${ax.label}：${ax.stages[si]}<br>${sc.sub}`,
+                                )
+                                .style("left", d3.event.pageX + 12 + "px")
+                                .style("top", d3.event.pageY - 10 + "px");
+                        })
+                        .on("mouseleave", () => tip.style("opacity", 0));
+                    if (ai === 0)
+                        svg.append("text")
+                            .attr("x", x)
+                            .attr("y", y0 + IH + 12)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", 9)
+                            .attr("fill", "#999")
+                            .text(sc.id);
+                });
+            });
         </script>
     </body>
 </html>
