@@ -1,0 +1,35 @@
+baseline:
+  diary_avg_valence: 1.0
+  diary_volatility: 0.71
+  fiction_avg_valence: 0.75
+  typical_gap: -0.25
+  sample_size:
+    diary: 20
+    fiction: 20
+common_needs:
+  diary:
+  - need: 成就感
+    count: 4
+  - need: 效率提升
+    count: 2
+  - need: 安全感
+    count: 2
+  - need: clarity
+    count: 2
+  - need: 控制感
+    count: 2
+  fiction:
+  - need: 被理解
+    count: 9
+  - need: 安全感
+    count: 5
+  - need: 情感连接
+    count: 5
+  - need: 陪伴
+    count: 5
+  - need: 亲密
+    count: 2
+thresholds:
+  warning_if_valence_below: 0.29
+  warning_if_gap_negative: 小说愉悦度低于日记时需关注
+  warning_if_no_fiction: 连续 7 天无小说创作时需关注
