@@ -10,7 +10,8 @@ h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: .25rem; }
 .row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
 .col { flex: 1; min-width: 0; }
 .col-header { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #aaa; margin-bottom: .4rem; }
-.card { background: #f9f9f9; border-radius: 6px; padding: .75rem; }
+.card { background: #f9f9f9; border-radius: 6px; padding: .75rem; margin-bottom: .5rem; }
+.card:last-child { margin-bottom: 0; }
 h3 { font-size: .9rem; font-weight: 600; margin: 0 0 .4rem; }
 p { font-size: .85rem; line-height: 1.5; margin: .2rem 0; }
 .tag { display: inline-block; font-size: .75rem; padding: .1rem .45rem; border-radius: 3px; margin: .1rem; }
@@ -19,7 +20,9 @@ p { font-size: .85rem; line-height: 1.5; margin: .2rem 0; }
 .tag-orange { background: #fff3e0; color: #e65100; }
 .tag-purple { background: #f3e5f5; color: #7b1fa2; }
 .tag-red { background: #fbe9e7; color: #bf360c; }
+.tag-gray { background: #eceff1; color: #546e7a; }
 .arrow { color: #ccc; margin: 0 .3rem; }
+.sub { font-size: .8rem; color: #888; }
 </style>
 
 <h1>📖 故事抽取结果</h1>
@@ -31,25 +34,25 @@ p { font-size: .85rem; line-height: 1.5; margin: .2rem 0; }
     <div class="card">
       <h3>陆知微</h3>
       <p><span class="tag tag-green">恋人</span> <span class="tag tag-blue">温柔、感性、容易感动</span></p>
-      <p><strong>动机：</strong>珍惜与林远亭的感情，弥补过去的遗憾</p>
+      <p class="sub"><strong>动机：</strong>珍惜感情，弥补过去的遗憾</p>
     </div>
-    <div class="card" style="margin-top:.5rem">
+    <div class="card">
       <h3>林远亭</h3>
       <p><span class="tag tag-green">恋人</span> <span class="tag tag-blue">温柔、细腻、善于表达</span></p>
-      <p><strong>动机：</strong>与陆知微在一起，解开过去的心结</p>
+      <p class="sub"><strong>动机：</strong>与陆知微在一起，解开过去心结</p>
     </div>
   </div>
   <div class="col">
     <p class="col-header">分析 · 人物弧光</p>
     <div class="card">
-      <p><strong>陆知微</strong></p>
-      <p><span class="tag tag-orange">起点</span> 自卑 <span class="arrow">→</span> <span class="tag tag-green">终点</span> 自信</p>
-      <p><span style="font-size:.8rem;color:#888">被林远亭需要和珍惜，让她从"只能看背影"走向"可以并肩"</span></p>
+      <h3>陆知微</h3>
+      <p><span class="tag tag-orange">自卑</span> <span class="arrow">→</span> <span class="tag tag-green">自信</span></p>
+      <p class="sub">被林远亭需要和珍惜，让她从"只能看背影"走向"可以并肩"</p>
     </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><strong>林远亭</strong></p>
-      <p><span class="tag tag-orange">起点</span> 孤独 <span class="arrow">→</span> <span class="tag tag-green">终点</span> 被治愈</p>
-      <p><span style="font-size:.8rem;color:#888">发现低谷期并非独自一人，心结被陆知微一句话解开</span></p>
+    <div class="card">
+      <h3>林远亭</h3>
+      <p><span class="tag tag-orange">孤独</span> <span class="arrow">→</span> <span class="tag tag-green">被治愈</span></p>
+      <p class="sub">发现低谷期并非独自一人，心结被陆知微一句话解开</p>
     </div>
   </div>
 </div>
@@ -58,19 +61,19 @@ p { font-size: .85rem; line-height: 1.5; margin: .2rem 0; }
   <div class="col">
     <p class="col-header">直取 · 场景</p>
     <div class="card">
-      <p><strong>海边栈桥</strong> <span class="tag tag-orange">温暖、宁静、幸福</span></p>
-      <p>两人关系确认后的甜蜜场景，也是过去林远亭独自忧郁的地方</p>
+      <h3>海边栈桥</h3>
+      <p><span class="tag tag-orange">温暖、宁静、幸福</span></p>
+      <p class="sub">关系确认后的甜蜜场景，也是过去忧郁的地方</p>
     </div>
   </div>
   <div class="col">
     <p class="col-header">分析 · 情感地理</p>
     <div class="card">
-      <p><strong>海边栈桥</strong> → 幸福、不真实感</p>
-      <p>两人牵手散步，享受当下</p>
-    </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><strong>海边</strong> → 忧郁、思念</p>
-      <p>林远亭过去心情不好时来海边想心事和想陆知微</p>
+      <p><strong>海边栈桥</strong> <span class="arrow">→</span> 幸福、不真实感</p>
+      <p class="sub">现在两人牵手散步，享受当下</p>
+      <hr style="border:none;border-top:1px solid #e0e0e0;margin:.4rem 0">
+      <p><strong>海边</strong> <span class="arrow">→</span> 忧郁、思念</p>
+      <p class="sub">过去林远亭独自来海边想心事</p>
     </div>
   </div>
 </div>
@@ -79,66 +82,49 @@ p { font-size: .85rem; line-height: 1.5; margin: .2rem 0; }
   <div class="col">
     <p class="col-header">直取 · 时间线</p>
     <div class="card">
-      <p><span class="tag tag-green">现在</span> 两人在海边栈桥散步，对话</p>
-      <p>确认感情，解开过去心结</p>
+      <p><span class="tag tag-green">现在</span> 海边散步，坦白过去</p>
+      <p class="sub">确认感情，解开十年心结</p>
     </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><span class="tag tag-blue">过去</span> 林远亭常来海边想心事和想陆知微</p>
-      <p>形成自卑和思念</p>
-    </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><span class="tag tag-blue">过去</span> 陆知微在背后看林远亭的背影</p>
-      <p>让林远亭感到被陪伴，解开孤独心结</p>
+    <div class="card">
+      <p><span class="tag tag-blue">过去</span> 林远亭独来海边 × 陆知微背后守望</p>
+      <p class="sub">一个在自卑中思念，一个在暗处陪伴</p>
     </div>
   </div>
   <div class="col">
     <p class="col-header">分析 · 核心张力</p>
     <div class="card">
       <p><strong>错过 vs 重逢</strong></p>
-      <p>两人过去十年互相暗恋却未相识，如今终于在一起</p>
-      <p><span style="font-size:.8rem;color:#888">已解决，但仍有遗憾</span></p>
+      <p class="sub">十年暗恋未相识，如今终于在一起</p>
+      <p class="sub"><span style="color:#888">解决程度：已在一起，仍有遗憾</span></p>
     </div>
-    <div class="card" style="margin-top:.5rem">
+    <div class="card">
       <p><strong>自卑 vs 勇气</strong></p>
-      <p>林远亭过去觉得自己不配，陆知微也以为只能看背影</p>
-      <p><span style="font-size:.8rem;color:#888">通过对话和表白得到缓解</span></p>
+      <p class="sub">林远亭自觉不配，陆知微以为只能看背影</p>
+      <p class="sub"><span style="color:#888">解决程度：对话和表白后缓解</span></p>
     </div>
   </div>
 </div>
 
 <div class="row">
   <div class="col">
-    <p class="col-header">直取 · 主题</p>
+    <p class="col-header">直取 · 原文</p>
     <div class="card">
-      <p><strong>治愈与救赎</strong></p>
-      <p>林远亭的心结被陆知微一句话解开，两人互相温暖</p>
+      <p style="font-style:italic;color:#555">"那天其实我很吃惊。原来我那个时候从来不是一个人。"</p>
     </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><strong>错过的时光</strong></p>
-      <p>后悔错过十年，但最终走到一起</p>
+    <div class="card">
+      <p style="font-style:italic;color:#555">"那个时候的自己总觉得自己不配。"</p>
     </div>
   </div>
   <div class="col">
-    <p class="col-header">分析 · 母题</p>
+    <p class="col-header">分析 · 风格</p>
     <div class="card">
-      <p><span class="tag tag-orange">image</span> <strong>海边漫步</strong></p>
-      <p>情侣在海边栈桥散步，阳光海景营造浪漫氛围</p>
+      <p><strong>抒情对话体</strong></p>
+      <p><span class="tag tag-blue">抒情</span> <span class="tag tag-green">对话驱动</span> <span class="tag tag-orange">内心独白</span></p>
+      <p class="sub">以细腻的内心独白推进情感，对话简短但承载大量潜台词</p>
     </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><span class="tag tag-purple">theme</span> <strong>错过与遗憾</strong></p>
-      <p>后悔错过十年，未能早点相识相知</p>
-    </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><span class="tag tag-blue">character</span> <strong>默默守护</strong></p>
-      <p>一方在背后陪伴，另一方后来才知晓</p>
-    </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><span class="tag tag-red">theme</span> <strong>自我怀疑</strong></p>
-      <p>觉得自己不配拥有爱情，缺乏勇气</p>
-    </div>
-    <div class="card" style="margin-top:.5rem">
-      <p><span class="tag tag-green">plot</span> <strong>情感治愈</strong></p>
-      <p>通过对话解开多年心结，获得安慰</p>
+    <div class="card">
+      <p><strong>多视角切换</strong></p>
+      <p class="sub">同一场景从男女主双视角展开，读者同时获知双方内心活动，形成"信息差"张力</p>
     </div>
   </div>
 </div>
