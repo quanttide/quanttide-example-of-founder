@@ -1,113 +1,284 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>主题轴推进</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f8f9fa; padding: 40px; }
-h1 { text-align: center; color: #333; font-size: 22px; }
-.subtitle { text-align: center; color: #888; font-size: 13px; margin: 4px 0 24px; }
-.nav { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
-.nav a { padding: 6px 14px; border-radius: 6px; font-size: 13px; text-decoration: none; color: #888; background: #eee; }
-.nav a.active { background: #333; color: #fff; }
-.chart-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); padding: 24px; max-width: 1060px; margin: 0 auto; }
-svg { display: block; margin: 0 auto; }
-.legend { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #666; margin-top: 16px; }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-.tooltip { position: absolute; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; pointer-events: none; opacity: 0; z-index: 100; }
-.stage-label { font-size: 10px; font-weight: 500; }
-</style>
-</head>
-<body>
-<h1>主题轴推进</h1>
-<p class="subtitle">三条情感轴上的场景位置变化</p>
-<div class="nav">
-  <a href="axes.html" class="active">主题轴</a>
-  <a href="techniques.html">手法</a>
-  <a href="carriers.html">情感载体</a>
-  <a href="prequels.html">前传</a>
-</div>
-<div class="chart-wrap">
-  <div id="chart"></div>
-  <div class="legend" id="legend"></div>
-</div>
-<div class="tooltip" id="tooltip"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>主题轴推进</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, "Microsoft YaHei", sans-serif;
+                background: #f8f9fa;
+                padding: 40px;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                font-size: 22px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #888;
+                font-size: 13px;
+                margin: 4px 0 24px;
+            }
+            .nav {
+                display: flex;
+                justify-content: center;
+                gap: 6px;
+                margin-bottom: 24px;
+            }
+            .nav a {
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 13px;
+                text-decoration: none;
+                color: #888;
+                background: #eee;
+            }
+            .nav a.active {
+                background: #333;
+                color: #fff;
+            }
+            .chart-wrap {
+                background: #fff;
+                border-radius: 10px;
+                box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+                padding: 24px;
+                max-width: 1060px;
+                margin: 0 auto;
+            }
+            svg {
+                display: block;
+                margin: 0 auto;
+            }
+            .legend {
+                display: flex;
+                justify-content: center;
+                gap: 16px;
+                flex-wrap: wrap;
+                font-size: 12px;
+                color: #666;
+                margin-top: 16px;
+            }
+            .tooltip {
+                position: absolute;
+                background: rgba(0, 0, 0, 0.85);
+                color: #fff;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                line-height: 1.5;
+                pointer-events: none;
+                opacity: 0;
+                z-index: 100;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>主题轴推进</h1>
+        <p class="subtitle">三条情感轴上的场景位置变化</p>
+        <div class="nav">
+            <a href="axes.html" class="active">主题轴</a>
+            <a href="techniques.html">手法</a>
+            <a href="carriers.html">情感载体</a>
+            <a href="prequels.html">前传</a>
+        </div>
+        <div class="chart-wrap">
+            <div id="chart"></div>
+            <div class="legend" id="legend"></div>
+        </div>
+        <div class="tooltip" id="tooltip"></div>
 
-<script>
-const axisData = [
-  { label: "孤独 → 陪伴", stages: ["独自承受", "被看见\n不敢回应", "被看见\n得到回应", "共同面对"], colors: ["#74B9FF", "#55E6C1", "#FDCB6E", "#E17055"] },
-  { label: "猜测 → 确认", stages: ["完全不知", "隐约有感觉", "细节确认", "双方明确"], colors: ["#A29BFE", "#6C5CE7", "#FD79A8", "#E17055"] },
-  { label: "仰望 → 并肩", stages: ["对方是偶像", "看见真实", "看见脆弱", "平等相对"], colors: ["#81ECEC", "#74B9FF", "#FDCB6E", "#55E6C1"] },
-];
+        <script>
+            const axisData = [
+                {
+                    label: "孤独 → 陪伴",
+                    stages: [
+                        "独自承受",
+                        "被看见不敢回应",
+                        "得到回应",
+                        "共同面对",
+                    ],
+                    colors: ["#74B9FF", "#55E6C1", "#FDCB6E", "#E17055"],
+                },
+                {
+                    label: "猜测 → 确认",
+                    stages: ["完全不知", "隐约有感觉", "细节确认", "双方明确"],
+                    colors: ["#A29BFE", "#6C5CE7", "#FD79A8", "#E17055"],
+                },
+                {
+                    label: "仰望 → 并肩",
+                    stages: ["对方是偶像", "看见真实", "看见脆弱", "平等相对"],
+                    colors: ["#81ECEC", "#74B9FF", "#FDCB6E", "#55E6C1"],
+                },
+            ];
 
-const scenes = [
-  { id: "1_1", n: "咖啡厅重逢", pos: [0,1,0], sub: "重逢但不敢认" },
-  { id: "1_2", n: "深夜失眠", pos: [0,1,0], sub: "重逢后整夜心跳" },
-  { id: "2_1", n: "展会再遇", pos: [0,1,0], sub: "工作场合靠近" },
-  { id: "2_3", n: "傍晚小龙虾", pos: [0,1,1], sub: "各自吐露困境" },
-  { id: "4_1", n: "便利店谈心", pos: [1,1,1], sub: "深夜破防" },
-  { id: "4_2", n: "夜市约会", pos: [2,2,1], sub: "'陪我养一个'" },
-  { id: "4_3", n: "互相问早", pos: [2,2,1], sub: "第一句早安" },
-  { id: "5_1", n: "家里吃火锅", pos: [2,2,1], sub: "Hello Kitty拖鞋" },
-  { id: "6_2", n: "海边散步", pos: [1,2,1], sub: "她说出当年的秘密" },
-  { id: "7_1", n: "酒吧表白", pos: [3,3,2], sub: "'喜欢了十年'" },
-  { id: "7_2", n: "公园拥抱", pos: [3,3,2], sub: "'你太苦了'" },
-  { id: "8_1", n: "海边再散步", pos: [3,3,3], sub: "牵手的海边" },
-  { id: "10_1", n: "书房陪伴", pos: [3,3,3], sub: "发现十年信" },
-  { id: "10_2", n: "客厅看剧", pos: [3,3,3], sub: "窝沙发" },
-  { id: "10_3", n: "阳台看星星", pos: [3,3,3], sub: "见父母" },
-];
+            const scenes = [
+                {
+                    id: "1_1",
+                    n: "咖啡厅重逢",
+                    pos: [0, 1, 0],
+                    sub: "重逢但不敢认",
+                },
+                { id: "1_2", n: "深夜失眠", pos: [0, 1, 0], sub: "整夜心跳" },
+                {
+                    id: "2_1",
+                    n: "展会再遇",
+                    pos: [0, 1, 0],
+                    sub: "工作场合靠近",
+                },
+                {
+                    id: "2_3",
+                    n: "傍晚小龙虾",
+                    pos: [0, 1, 1],
+                    sub: "各自吐露困境",
+                },
+                { id: "4_1", n: "便利店谈心", pos: [1, 1, 1], sub: "深夜破防" },
+                {
+                    id: "4_2",
+                    n: "夜市约会",
+                    pos: [2, 2, 1],
+                    sub: "'陪我养一个'",
+                },
+                { id: "4_3", n: "互相问早", pos: [2, 2, 1], sub: "第一句早安" },
+                {
+                    id: "5_1",
+                    n: "家里吃火锅",
+                    pos: [2, 2, 1],
+                    sub: "Hello Kitty",
+                },
+                {
+                    id: "6_2",
+                    n: "海边散步",
+                    pos: [1, 2, 1],
+                    sub: "说出当年的秘密",
+                },
+                {
+                    id: "7_1",
+                    n: "酒吧表白",
+                    pos: [3, 3, 2],
+                    sub: "'喜欢了十年'",
+                },
+                { id: "7_2", n: "公园拥抱", pos: [3, 3, 2], sub: "'你太苦了'" },
+                {
+                    id: "8_1",
+                    n: "海边再散步",
+                    pos: [3, 3, 3],
+                    sub: "牵手的海边",
+                },
+                {
+                    id: "10_1",
+                    n: "书房陪伴",
+                    pos: [3, 3, 3],
+                    sub: "发现十年信",
+                },
+                { id: "10_2", n: "客厅看剧", pos: [3, 3, 3], sub: "窝沙发" },
+                { id: "10_3", n: "阳台看星星", pos: [3, 3, 3], sub: "见父母" },
+            ];
 
-const w = 1000, h = 340, m = { top: 26, left: 130, right: 40, bottom: 32 };
-const iw = w - m.l - m.r, ih = (h - m.t - m.b) / 3;
+            const W = 1000,
+                H = 340;
+            const M = { t: 26, l: 130, r: 40, b: 32 };
+            const IW = W - M.l - M.r;
+            const IH = (H - M.t - M.b) / 3;
+            const N = scenes.length;
 
-const svg = d3.select("#chart").append("svg").attr("w", w).attr("h", h);
-const tip = d3.select("#tooltip");
+            const svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", W)
+                .attr("height", H);
+            const tip = d3.select("#tooltip");
 
-axisData.forEach((ax, ai) => {
-  const y0 = m.t + ai * ih, y1 = m.t + (ai+1) * ih;
-  const my = (y0 + y1) / 2;
+            axisData.forEach((ax, ai) => {
+                const y0 = M.t + ai * IH;
+                const y1 = M.t + (ai + 1) * IH;
+                const midY = (y0 + y1) / 2;
 
-  svg.append("text").attr("x", m.l - 12).attr("y", my+4)
-    .attr("text-anchor", "end").attr("font-size", 13).attr("fill", "#444")
-    .attr("font-weight", "bold").text(ax.label);
+                // Axis label
+                svg.append("text")
+                    .attr("x", M.l - 10)
+                    .attr("y", midY + 4)
+                    .attr("text-anchor", "end")
+                    .attr("font-size", 13)
+                    .attr("fill", "#444")
+                    .attr("font-weight", "bold")
+                    .text(ax.label);
 
-  const bw = iw / ax.stages.length;
-  ax.stages.forEach((s, si) => {
-    const bx = m.l + si * bw;
-    svg.append("rect").attr("x", bx).attr("y", y0+8).attr("w", bw).attr("h", ih-16)
-      .attr("fill", ax.colors[si]).attr("opacity", 0.08).attr("rx", 4);
+                // Stage bands
+                const bw = IW / ax.stages.length;
+                ax.stages.forEach((stage, si) => {
+                    const bx = M.l + si * bw;
+                    svg.append("rect")
+                        .attr("x", bx)
+                        .attr("y", y0 + 8)
+                        .attr("width", bw)
+                        .attr("height", IH - 16)
+                        .attr("fill", ax.colors[si])
+                        .attr("opacity", 0.08)
+                        .attr("rx", 4);
 
-    if (si === 0 || si === ax.stages.length-1) {
-      svg.append("text").attr("x", bx + (si===0?6:bw-6)).attr("y", y0+26)
-        .attr("text-anchor", si===0?"start":"end").attr("font-size", 10)
-        .attr("fill", ax.colors[si]).attr("font-weight", "bold").text(s);
-    }
-  });
+                    // First and last stage labels only
+                    if (si === 0 || si === ax.stages.length - 1) {
+                        svg.append("text")
+                            .attr("x", bx + (si === 0 ? 6 : bw - 6))
+                            .attr("y", y0 + 24)
+                            .attr("text-anchor", si === 0 ? "start" : "end")
+                            .attr("font-size", 10)
+                            .attr("fill", ax.colors[si])
+                            .attr("font-weight", "bold")
+                            .text(stage);
+                    }
+                });
 
-  scenes.forEach((sc, i) => {
-    const x = m.l + (i / (scenes.length-1)) * iw;
-    const si = sc.pos[ai];
-    const dy = y0 + 8 + (ih-16) * ((si+0.5) / ax.stages.length);
+                // Scene dots
+                scenes.forEach((sc, i) => {
+                    const x = M.l + (i / (N - 1)) * IW;
+                    const si = sc.pos[ai];
+                    const dotY =
+                        y0 + 8 + (IH - 16) * ((si + 0.5) / ax.stages.length);
 
-    svg.append("circle").attr("cx", x).attr("cy", dy).attr("r", 5)
-      .attr("fill", ax.colors[si]).attr("stroke", "#fff").attr("sw", 1.5)
-      .attr("opacity", 0.85)
-      .on("mouseenter", () => tip.style("opacity",1).html(`<b>${sc.id} ${sc.n}</b><br>${ax.label}: ${ax.stages[si].replace("\n","")}<br>${sc.sub}`).style("left",(d3.event.pageX+12)+"px").style("top",(d3.event.pageY-10)+"px"))
-      .on("mouseleave", () => tip.style("opacity",0));
+                    svg.append("circle")
+                        .attr("cx", x)
+                        .attr("cy", dotY)
+                        .attr("r", 5)
+                        .attr("fill", ax.colors[si])
+                        .attr("stroke", "#fff")
+                        .attr("stroke-width", 1.5)
+                        .attr("opacity", 0.85)
+                        .on("mouseenter", function () {
+                            const stageText = ax.stages[si];
+                            tip.style("opacity", 1)
+                                .html(
+                                    `<b>${sc.id} ${sc.n}</b><br>${ax.label}：${stageText}<br>${sc.sub}`,
+                                )
+                                .style("left", d3.event.pageX + 12 + "px")
+                                .style("top", d3.event.pageY - 10 + "px");
+                        })
+                        .on("mouseleave", () => tip.style("opacity", 0));
 
-    if (ai === 0) {
-      svg.append("text").attr("x", x).attr("y", y0+ih+12)
-        .attr("text-anchor", "middle").attr("font-size", 9).attr("fill", "#999").text(sc.id);
-    }
-  });
-});
+                    // Scene ID below axis 0
+                    if (ai === 0) {
+                        svg.append("text")
+                            .attr("x", x)
+                            .attr("y", y0 + IH + 12)
+                            .attr("text-anchor", "middle")
+                            .attr("font-size", 9)
+                            .attr("fill", "#999")
+                            .text(sc.id);
+                    }
+                });
+            });
 
-d3.select("#legend").html(`<span style="font-size:12px;color:#888">悬停圆点查看每个场景在主题轴上的位置</span>`);
-</script>
-</body>
+            d3.select("#legend").html(
+                `<span style="font-size:12px;color:#888">悬停圆点查看每个场景在主题轴上的位置</span>`,
+            );
+        </script>
+    </body>
 </html>
