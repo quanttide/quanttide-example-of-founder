@@ -2,14 +2,14 @@
 
 ## 目标
 
-用 `qtadmin knowl extract` 从小说片段中自动抽取结构化世界观要素，验证 CLI 抽取工具在虚构叙事分析场景下的效果。
+用 `qtadmin knowl extract` 从职场言情小说片段中自动抽取结构化世界观要素，验证 CLI 抽取工具在叙事分析场景下的效果。
 
 ## 文件
 
 | 文件 | 用途 |
 |------|------|
-| `fiction.yaml` | 示例小说片段（悬空城塞世界观） |
-| `ontology.yaml` | 世界观模型声明（cosmology, geography, societies, characters, magic_system, history, tensions） |
+| `fiction.yaml` | 小说片段（职场言情·海边再散步） |
+| `ontology.yaml` | 世界观模型声明（characters, relationship, setting, emotional_geography, timeline, themes, tensions） |
 
 ## 用法
 
@@ -31,15 +31,15 @@ cat out/worldbuilding/worldbuilding.yaml
 
 `out/worldbuilding/worldbuilding.yaml` 包含以下分类的结构化世界观要素：
 
-| 类别 | 示例 |
+| 类别 | 说明 |
 |------|------|
-| cosmology | 群星是巨兽鳞片、星能衰竭、深空观测禁忌 |
-| geography | 碎星群岛、悬空城塞鸦巢、银渊陨坑 |
-| societies | 鸦巢议事团、军需派、渔民派、老学者派 |
-| characters | 埃莉斯（城主）、维托（军需官） |
-| magic_system | 祈星术、星锚、星能核心、符文阵图 |
-| history | 初代城主钉星锚（300年前）、银渊陨落（50年前） |
-| tensions | 生存 vs 禁忌、传统 vs 变革 |
+| characters | 陆知微、林远亭：身份、性格、动机与弧光 |
+| relationship | 恋人关系动态、十年的错过与重逢 |
+| setting | 海边栈桥、阳光碧海的氛围与意义 |
+| emotional_geography | 海边与孤独记忆、陪伴的绑定 |
+| timeline | 十年前→低谷期→现在的关系演变 |
+| themes | 治愈、错过、勇气、温柔 |
+| tensions | 自卑vs勇气、过去vs现在、错过vs重逢 |
 
 ## 扩展
 
