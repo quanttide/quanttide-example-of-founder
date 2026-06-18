@@ -135,6 +135,7 @@
         { "id": "P5", "depth": "引用", "reveals": "他曾醉后坦白" },
         { "id": "P6", "depth": "隐含", "reveals": "两人都在屏幕后关注对方" }
       ],
+      "sensory": {"score":5,"channels":["触觉（毛巾擦头发、手指触碰）","味觉（焦糖玛奇朵）","嗅觉（棉絮味、咖啡香）","听觉（爵士乐、雨声、行李箱轮子声）","视觉（火烧云、下雨、行李箱贴纸）"]},
       "resonatesWith": ["5_1（物件回响）", "4_2（巧合二重奏）", "8_1（海边记忆回响）"]
     },
     {
@@ -160,6 +161,7 @@
       "prequelEntanglement": [
         { "id": "P1", "depth": "引用", "reveals": "毕业晚会是他执念的起点" }
       ],
+      "sensory": {"score":2,"channels":["触觉（按手机）","视觉（手机时间、相册照片）"],"note":"内在独白为主，感官封闭"},
       "resonatesWith": []
     },
     {
@@ -185,6 +187,7 @@
       "prequelEntanglement": [
         { "id": "P7", "depth": "引用", "reveals": "她十年前看过他的代码" }
       ],
+      "sensory": {"score":3,"channels":["视觉（海报、白西装）","听觉（电话响）"],"note":"会议空间，社交面具"},
       "resonatesWith": []
     },
     {
@@ -208,6 +211,7 @@
         "passesTo": []
       },
       "prequelEntanglement": [],
+      "sensory": {"score":4,"channels":["触觉（剥虾壳）","味觉（小龙虾）","嗅觉（小龙虾香气）","听觉（老板说话）","视觉（对方眼神）"]},
       "resonatesWith": []
     },
     {
@@ -233,6 +237,7 @@
       "prequelEntanglement": [
         { "id": "P2", "depth": "引用", "reveals": "十年前他在全校演讲" }
       ],
+      "sensory": {"score":4,"channels":["触觉（捏肩）","味觉（关东煮）","听觉（玻璃门叮咚、拍一拍）","视觉（窗外的雨、路灯）"],"note":"身体语言先于语言——捏肩是最重要的感官瞬间"},
       "resonatesWith": []
     },
     {
@@ -258,6 +263,7 @@
       "prequelEntanglement": [
         { "id": "P6", "depth": "隐含", "reveals": "他说'经常看你半夜发吃的'——暗示十年间一直在关注" }
       ],
+      "sensory": {"score":4,"channels":["触觉（拉衣袖）","味觉（麻辣烫）","嗅觉（锅气、食物香气）","视觉（火锅热气、路灯下的影子）"],"note":"夜市是最丰富的感官环境"},
       "resonatesWith": ["1_1（伪装巧合的释放）"]
     },
     {
@@ -281,6 +287,7 @@
         "passesTo": []
       },
       "prequelEntanglement": [],
+      "sensory": {"score":3,"channels":["味觉（早餐小笼包）","听觉（语音消息）","视觉（表情包、早餐图片）"],"note":"数字空间为主，感官受限"},
       "resonatesWith": []
     },
     {
@@ -306,6 +313,7 @@
       "prequelEntanglement": [
         { "id": "P3", "depth": "引用", "reveals": "十年前两桌人同时在同一个餐厅" }
       ],
+      "sensory": {"score":5,"channels":["触觉（穿拖鞋、接橙汁）","味觉（火锅、橙汁）","嗅觉（牛油锅底香气）","视觉（火锅热气、粉拖鞋、西红柿切片）"],"note":"在家吃饭——最多感官通道同时打开的场景"},
       "resonatesWith": ["1_1（物件反复的释放）"]
     },
     {
@@ -332,6 +340,7 @@
         { "id": "P4", "depth": "引用", "reveals": "她曾在他身后站了一会儿" },
         { "id": "P1", "depth": "引用", "reveals": "毕业晚会的记忆在此刻重提" }
       ],
+      "sensory": {"score":4,"channels":["触觉（拽手腕跑）","嗅觉（海风）","听觉（潮起潮落声）","视觉（月光、灯光、长椅）"],"note":"环境和对话高度融合"},
       "resonatesWith": ["8_1（场景对照的释放）"]
     },
     {
@@ -357,6 +366,7 @@
       "prequelEntanglement": [
         { "id": "P5", "depth": "回响", "reveals": "同一句坦白在不同时间、对不同的听众说出" }
       ],
+      "sensory": {"score":3,"channels":["味觉（鸡尾酒）","听觉（酒吧音乐、《原谅》歌词）","视觉（暗黑格调）"],"note":"对话占据，感官环境让步"},
       "resonatesWith": ["1_1（日记里的坦白→当面的坦白）"]
     },
     {
@@ -380,6 +390,7 @@
         "passesTo": ["8_1（从拥抱到牵手）"]
       },
       "prequelEntanglement": [],
+      "sensory": {"score":2,"channels":["触觉（拍肩、拥抱）","听觉（声音发抖）"],"note":"情感高潮，感官聚焦在触觉和声音上"},
       "resonatesWith": []
     },
     {
@@ -405,6 +416,7 @@
       "prequelEntanglement": [
         { "id": "P4", "depth": "回响", "reveals": "他正面回应了她的存在——十年的心结解开" }
       ],
+      "sensory": {"score":3,"channels":["触觉（牵手、摸头）","嗅觉（海风）","视觉（碧蓝海面、阳光）"],"note":"对话场景、感官退居背景"},
       "resonatesWith": ["6_2（场景对照的释放）"]
     },
     {
@@ -430,6 +442,7 @@
       "prequelEntanglement": [
         { "id": "P5", "depth": "回响", "reveals": "醉酒坦白说出来的话，在清醒时的信里写得更加恳切" }
       ],
+      "sensory": {"score":3,"channels":["触觉（坐在腿上、蹭脖子、靠肩上）","听觉（都智文的歌、智能音箱）","视觉（活页纸、设计稿、信）"],"note":"触觉为主、视觉次之"},
       "resonatesWith": ["1_1（日记本→十年信，延迟揭示的释放）"]
     },
     {
@@ -453,6 +466,7 @@
         "passesTo": ["10_3（客厅→阳台）"]
       },
       "prequelEntanglement": [],
+      "sensory": {"score":4,"channels":["触觉（搂肩、蹭、靠胸口、吻）","听觉（电视声）","视觉（电视画面）"],"note":"日常相处、触觉最密集"},
       "resonatesWith": []
     },
     {
@@ -476,6 +490,7 @@
         "passesTo": []
       },
       "prequelEntanglement": [],
+      "sensory": {"score":3,"channels":["触觉（窝在怀里、握她的手）","听觉（音响音乐）","视觉（星星）"],"note":"静谧氛围、感官适中"},
       "resonatesWith": []
     }
   ],
