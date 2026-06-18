@@ -1,129 +1,414 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>情感载体流转</title>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f8f9fa; padding: 40px; }
-h1 { text-align: center; color: #333; font-size: 22px; }
-.subtitle { text-align: center; color: #888; font-size: 13px; margin: 4px 0 24px; }
-.nav { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
-.nav a { padding: 6px 14px; border-radius: 6px; font-size: 13px; text-decoration: none; color: #888; background: #eee; }
-.nav a.active { background: #333; color: #fff; }
-.chart-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 8px rgba(0,0,0,0.06); padding: 24px; max-width: 1060px; margin: 0 auto; }
-svg { display: block; margin: 0 auto; }
-.legend { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #666; margin-top: 16px; }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-line { width: 24px; height: 3px; border-radius: 2px; }
-.tooltip { position: absolute; background: rgba(0,0,0,0.85); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; pointer-events: none; opacity: 0; z-index: 100; }
-</style>
-</head>
-<body>
-<h1>情感载体流转</h1>
-<p class="subtitle">物件、信息、情感如何在场景间传递</p>
-<div class="nav">
-  <a href="axes.html">主题轴</a>
-  <a href="techniques.html">手法</a>
-  <a href="carriers.html" class="active">情感载体</a>
-  <a href="prequels.html">前传</a>
-</div>
-<div class="chart-wrap">
-  <div id="chart"></div>
-  <div class="legend" id="legend"></div>
-</div>
-<div class="tooltip" id="tooltip"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>情感载体流转</title>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: -apple-system, "Microsoft YaHei", sans-serif;
+                background: #f8f9fa;
+                padding: 40px;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                font-size: 22px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #888;
+                font-size: 13px;
+                margin: 4px 0 24px;
+            }
+            .nav {
+                display: flex;
+                justify-content: center;
+                gap: 6px;
+                margin-bottom: 24px;
+            }
+            .nav a {
+                padding: 6px 14px;
+                border-radius: 6px;
+                font-size: 13px;
+                text-decoration: none;
+                color: #888;
+                background: #eee;
+            }
+            .nav a.active {
+                background: #333;
+                color: #fff;
+            }
+            .chart-wrap {
+                background: #fff;
+                border-radius: 10px;
+                box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+                padding: 24px;
+                max-width: 1060px;
+                margin: 0 auto;
+            }
+            svg {
+                display: block;
+                margin: 0 auto;
+            }
+            .legend {
+                display: flex;
+                justify-content: center;
+                gap: 16px;
+                flex-wrap: wrap;
+                font-size: 12px;
+                color: #666;
+                margin-top: 16px;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            .legend-line {
+                width: 20px;
+                height: 3px;
+                border-radius: 2px;
+            }
+            .tooltip {
+                position: absolute;
+                background: rgba(0, 0, 0, 0.85);
+                color: #fff;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                line-height: 1.5;
+                pointer-events: none;
+                opacity: 0;
+                z-index: 100;
+            }
+            .axis-label {
+                font-size: 10px;
+                fill: #bbb;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>情感载体流转</h1>
+        <p class="subtitle">
+            跨度越高 = 情感记忆越远，圆点越大 = 经过的情感流量越多
+        </p>
+        <div class="nav">
+            <a href="axes.html">主题轴</a>
+            <a href="techniques.html">手法</a>
+            <a href="carriers.html" class="active">情感载体</a>
+            <a href="prequels.html">前传</a>
+        </div>
+        <div class="chart-wrap">
+            <div id="chart"></div>
+            <div class="legend" id="legend"></div>
+        </div>
+        <div class="tooltip" id="tooltip"></div>
 
-<script>
-const scenes = [
-  "1_1","1_2","2_1","2_3","4_1","4_2","4_3","5_1",
-  "6_2","7_1","7_2","8_1","10_1","10_2","10_3"
-];
-const carriers = [
-  { from:0, to:7, label:"Hello Kitty", type:"物件", sub:"行李箱贴纸 → 拖鞋" },
-  { from:0, to:5, label:"伪装巧合", type:"信息", sub:"" },
-  { from:4, to:5, label:"勇气", type:"情感", sub:"捏肩 → 夜市主动" },
-  { from:5, to:6, label:"联结仪式", type:"情感", sub:"养小火人 → 问早" },
-  { from:8, to:11, label:"海边记忆", type:"场景对照", sub:"她在身后 → 牵手同行" },
-  { from:9, to:10, label:"坦白→拥抱", type:"情感", sub:"" },
-  { from:10, to:11, label:"牵手", type:"情感", sub:"" },
-  { from:11, to:12, label:"心结解开", type:"情感", sub:"→ 日常" },
-  { from:12, to:13, label:"日常", type:"情感", sub:"书房→客厅" },
-  { from:13, to:14, label:"日常延续", type:"情感", sub:"客厅→阳台" },
-  { from:0, to:12, label:"日记本→信", type:"延迟揭示", sub:"1_1 设伏，10_1 释放" },
-];
+        <script>
+            const scenes = [
+                "1_1",
+                "1_2",
+                "2_1",
+                "2_3",
+                "4_1",
+                "4_2",
+                "4_3",
+                "5_1",
+                "6_2",
+                "7_1",
+                "7_2",
+                "8_1",
+                "10_1",
+                "10_2",
+                "10_3",
+            ];
 
-const colors = { "物件":"#E67E22", "信息":"#2980B9", "情感":"#27AE60", "场景对照":"#8E44AD", "延迟揭示":"#C0392B" };
+            const carriers = [
+                {
+                    from: 0,
+                    to: 7,
+                    label: "Hello Kitty",
+                    type: "物件",
+                    sub: "行李箱贴纸 → 拖鞋",
+                    weight: 2,
+                },
+                {
+                    from: 0,
+                    to: 5,
+                    label: "伪装巧合",
+                    type: "信息",
+                    sub: "她碰巧来 → 好巧啊",
+                    weight: 1.5,
+                },
+                {
+                    from: 4,
+                    to: 5,
+                    label: "勇气",
+                    type: "情感",
+                    sub: "捏肩 → 夜市主动",
+                    weight: 1.5,
+                },
+                {
+                    from: 5,
+                    to: 6,
+                    label: "联结仪式",
+                    type: "情感",
+                    sub: "养小火人 → 问早",
+                    weight: 1.5,
+                },
+                {
+                    from: 8,
+                    to: 11,
+                    label: "海边记忆",
+                    type: "场景对照",
+                    sub: "她在身后 → 牵手同行",
+                    weight: 2.5,
+                },
+                {
+                    from: 9,
+                    to: 10,
+                    label: "坦白→拥抱",
+                    type: "情感",
+                    sub: "",
+                    weight: 1,
+                },
+                {
+                    from: 10,
+                    to: 11,
+                    label: "牵手",
+                    type: "情感",
+                    sub: "",
+                    weight: 1,
+                },
+                {
+                    from: 11,
+                    to: 12,
+                    label: "心结解开",
+                    type: "情感",
+                    sub: "→ 日常",
+                    weight: 1.5,
+                },
+                {
+                    from: 12,
+                    to: 13,
+                    label: "日常",
+                    type: "情感",
+                    sub: "书房→客厅",
+                    weight: 1,
+                },
+                {
+                    from: 13,
+                    to: 14,
+                    label: "日常延续",
+                    type: "情感",
+                    sub: "客厅→阳台",
+                    weight: 1,
+                },
+                {
+                    from: 0,
+                    to: 12,
+                    label: "日记本→信",
+                    type: "延迟揭示",
+                    sub: "1_1 设伏，10_1 被读",
+                    weight: 3,
+                },
+            ];
 
-const w = 1000, h = 300, m = { t: 40, l: 30, r: 30, b: 30 };
-const iw = w - m.l - m.r;
+            const colors = {
+                物件: "#E67E22",
+                信息: "#2980B9",
+                情感: "#27AE60",
+                场景对照: "#8E44AD",
+                延迟揭示: "#C0392B",
+            };
 
-const sx = scenes.map((_, i) => m.l + (i / (scenes.length-1)) * iw);
-const sy = m.t + 50;
+            const w = 1000,
+                h = 420,
+                m = { t: 40, l: 50, r: 30, b: 50 };
+            const iw = w - m.l - m.r,
+                ih = h - m.t - m.b;
 
-const svg = d3.select("#chart").append("svg").attr("width", w).attr("height", h);
-const tip = d3.select("#tooltip");
+            const sx = scenes.map(
+                (_, i) => m.l + (i / (scenes.length - 1)) * iw,
+            );
 
-// Scene dots
-scenes.forEach((s, i) => {
-  const x = sx[i];
-  svg.append("circle").attr("cx", x).attr("cy", sy).attr("r", 5)
-    .attr("fill", "#bbb").attr("stroke", "#fff").attr("stroke-width", 1.5);
-  svg.append("text").attr("x", x).attr("y", sy + 16).attr("text-anchor", "middle")
-    .attr("font-size", 9).attr("fill", "#999").text(s);
-});
+            // Compute span for each carrier
+            carriers.forEach((c) => {
+                c.span = c.to - c.from;
+            });
 
-// Carrier arcs - auto layer to avoid overlap
-const layers = {};
-carriers.forEach((c, i) => {
-  const key = `${c.from}-${c.to}`;
-  layers[key] = (layers[key] || 0) + 1;
-});
+            const maxSpan = d3.max(carriers, (c) => c.span);
 
-const used = {};
-carriers.forEach((c) => {
-  const key = `${c.from}-${c.to}`;
-  used[key] = (used[key] || 0);
-  const layer = used[key];
-  used[key]++;
+            // Y position: span-distance
+            function spanY(span) {
+                return m.t + ih * (1 - span / (maxSpan + 1));
+            }
 
-  const x1 = sx[c.from], x2 = sx[c.to];
-  const mx = (x1 + x2) / 2;
-  const my = sy - 18 - layer * 16;
+            const svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h);
+            const tip = d3.select("#tooltip");
 
-  const path = d3.path();
-  path.moveTo(x1, sy - 5);
-  path.quadraticCurveTo(mx, my, x2, sy - 5);
+            // Y-axis label
+            svg.append("text")
+                .attr("x", 12)
+                .attr("y", m.t - 8)
+                .attr("font-size", 10)
+                .attr("fill", "#ccc")
+                .text("跨度 →");
 
-  const color = colors[c.type] || "#999";
-  const isDash = c.type === "延迟揭示";
+            // Span guide lines
+            for (let s = 1; s <= maxSpan; s++) {
+                const y = spanY(s);
+                svg.append("line")
+                    .attr("x1", m.l)
+                    .attr("y1", y)
+                    .attr("x2", m.l + iw)
+                    .attr("y2", y)
+                    .attr("stroke", "#f5f5f5")
+                    .attr("stroke-width", 0.5);
+                if (s % 2 === 0) {
+                    svg.append("text")
+                        .attr("x", m.l + iw + 4)
+                        .attr("y", y + 3)
+                        .attr("font-size", 9)
+                        .attr("fill", "#eee")
+                        .text(`${s}`);
+                }
+            }
 
-  svg.append("path").attr("d", path).attr("fill", "none")
-    .attr("stroke", color).attr("stroke-width", isDash ? 2.5 : 1.5)
-    .attr("stroke-dasharray", isDash ? "6,3" : "none").attr("opacity", 0.8);
+            // Count carrier throughput per scene
+            const throughput = scenes.map((_, i) => {
+                let count = 0;
+                carriers.forEach((c) => {
+                    if (c.from === i || c.to === i) count += c.weight;
+                });
+                return count;
+            });
+            const maxThru = d3.max(throughput);
 
-  svg.append("text").attr("x", mx).attr("y", my - 2)
-    .attr("text-anchor", "middle").attr("font-size", 10).attr("fill", color).text(c.label);
+            // Scene nodes: size = throughput
+            scenes.forEach((s, i) => {
+                const x = sx[i];
+                const r = 3 + (throughput[i] / maxThru) * 8;
+                svg.append("circle")
+                    .attr("cx", x)
+                    .attr("cy", m.t + ih + 6)
+                    .attr("r", r)
+                    .attr("fill", "#4A90D9")
+                    .attr("opacity", 0.25);
+                svg.append("circle")
+                    .attr("cx", x)
+                    .attr("cy", m.t + ih + 6)
+                    .attr("r", 3)
+                    .attr("fill", "#4A90D9");
+                svg.append("text")
+                    .attr("x", x)
+                    .attr("y", m.t + ih + 20)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", 9)
+                    .attr("fill", "#999")
+                    .text(s);
+            });
 
-  if (c.sub) {
-    svg.append("text").attr("x", mx).attr("y", my + 12)
-      .attr("text-anchor", "middle").attr("font-size", 8).attr("fill", "#aaa").text(c.sub);
-  }
+            // "场景时间线" label
+            svg.append("text")
+                .attr("x", m.l + iw + 4)
+                .attr("y", m.t + ih + 10)
+                .attr("font-size", 9)
+                .attr("fill", "#ddd")
+                .text("场景 →");
 
-  // Hover target
-  svg.append("rect").attr("x", mx - 60).attr("y", my - 14).attr("width", 120).attr("height", 28)
-    .attr("fill", "transparent")
-    .on("mouseenter", () => tip.style("opacity",1).html(`<b>${c.label}</b><br>${c.type}<br>${scenes[c.from]} → ${scenes[c.to]}${c.sub ? "<br>"+c.sub : ""}`).style("left",(d3.event.pageX+12)+"px").style("top",(d3.event.pageY-10)+"px"))
-    .on("mouseleave", () => tip.style("opacity",0));
-});
+            // Carrier arcs: height = span, thickness = weight
+            carriers.forEach((c) => {
+                const x1 = sx[c.from],
+                    x2 = sx[c.to];
+                const midX = (x1 + x2) / 2;
+                const apex = spanY(c.span);
 
-d3.select("#legend").html(
-  Object.entries(colors).map(([k,v]) =>
-    `<span class="legend-item"><span class="legend-line" style="background:${v}"></span> ${k}</span>`
-  ).join("") + `<span style="font-size:11px;color:#bbb;margin-left:8px">虚线 = 延迟揭示</span>`
-);
-</script>
-</body>
+                // Under-glow for long spans
+                if (c.span >= 7) {
+                    svg.append("ellipse")
+                        .attr("cx", midX)
+                        .attr("cy", (apex + m.t + ih + 6) / 2)
+                        .attr("rx", Math.abs(x2 - x1) / 2 + 10)
+                        .attr("ry", 40)
+                        .attr("fill", colors[c.type])
+                        .attr("opacity", 0.03);
+                }
+
+                const path = d3.path();
+                path.moveTo(x1, m.t + ih + 6);
+                path.quadraticCurveTo(midX, apex, x2, m.t + ih + 6);
+
+                const color = colors[c.type] || "#999";
+                const isDash = c.type === "延迟揭示";
+
+                svg.append("path")
+                    .attr("d", path)
+                    .attr("fill", "none")
+                    .attr("stroke", color)
+                    .attr("stroke-width", c.weight * 1.2)
+                    .attr("stroke-dasharray", isDash ? "6,3" : "none")
+                    .attr("opacity", 0.85);
+
+                // Label on arc
+                svg.append("text")
+                    .attr("x", midX)
+                    .attr("y", apex - 6)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", 10)
+                    .attr("fill", color)
+                    .attr("font-weight", "bold")
+                    .text(c.label);
+
+                if (c.sub) {
+                    svg.append("text")
+                        .attr("x", midX)
+                        .attr("y", apex + 10)
+                        .attr("text-anchor", "middle")
+                        .attr("font-size", 9)
+                        .attr("fill", "#aaa")
+                        .text(c.sub);
+                }
+
+                // Hover
+                svg.append("rect")
+                    .attr("x", midX - 70)
+                    .attr("y", apex - 12)
+                    .attr("width", 140)
+                    .attr("height", 24)
+                    .attr("fill", "transparent")
+                    .on("mouseenter", () =>
+                        tip
+                            .style("opacity", 1)
+                            .html(
+                                `<b>${c.label}</b><br>${c.type} · 跨度 ${c.span} 个场景<br>${scenes[c.from]} → ${scenes[c.to]}${c.sub ? "<br>" + c.sub : ""}`,
+                            )
+                            .style("left", d3.event.pageX + 12 + "px")
+                            .style("top", d3.event.pageY - 10 + "px"),
+                    )
+                    .on("mouseleave", () => tip.style("opacity", 0));
+            });
+
+            d3.select("#legend").html(
+                Object.entries(colors)
+                    .map(
+                        ([k, v]) =>
+                            `<span class="legend-item"><span class="legend-line" style="background:${v}"></span> ${k}</span>`,
+                    )
+                    .join("") +
+                    `<span style="font-size:11px;color:#bbb;margin-left:8px">虚线 = 延迟揭示</span>`,
+            );
+        </script>
+    </body>
 </html>
