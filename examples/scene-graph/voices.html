@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>话语量分布</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f8f9fa;padding:40px}
+h1{text-align:center;color:#333;font-size:22px}
+.subtitle{text-align:center;color:#888;font-size:13px;margin:4px 0 24px}
+.nav{display:flex;justify-content:center;gap:6px;margin-bottom:24px}
+.nav a{padding:6px 14px;border-radius:6px;font-size:13px;text-decoration:none;color:#888;background:#eee}
+.nav a.active{background:#333;color:#fff}
+.chart-wrap{background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.06);padding:24px;max-width:1060px;margin:0 auto}
+svg{display:block;margin:0 auto}
+.legend{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font-size:12px;color:#666;margin-top:12px}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.tooltip{position:absolute;background:rgba(0,0,0,0.85);color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;line-height:1.5;pointer-events:none;opacity:0;z-index:100}
+</style>
+</head>
+<body>
+<h1>话语量分布</h1>
+<p class="subtitle">每个场景中他的对白 vs 她的对白 vs 叙述/独白的比例</p>
+<div class="nav">
+  <a href="axes.html">主题轴</a>
+  <a href="techniques.html">手法</a>
+  <a href="carriers.html">情感载体</a>
+  <a href="prequels.html">前传</a>
+  <a href="senses.html">感官</a>
+  <a href="threads.html">线索</a>
+  <a href="voices.html" class="active">话语</a>
+</div>
+<div class="chart-wrap"><div id="chart"></div><div class="legend" id="legend"></div></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const scenes=[
+  {id:"1_1",n:"咖啡厅重逢",him:15,her:10,narr:50,internal:20},
+  {id:"1_2",n:"深夜失眠",him:0,her:0,narr:10,internal:60},
+  {id:"2_1",n:"展会再遇",him:0,her:8,narr:20,internal:12},
+  {id:"2_3",n:"傍晚小龙虾",him:15,her:12,narr:15,internal:5},
+  {id:"4_1",n:"便利店谈心",him:20,her:15,narr:25,internal:18},
+  {id:"4_2",n:"夜市约会",him:18,her:15,narr:20,internal:15},
+  {id:"4_3",n:"互相问早",him:15,her:10,narr:10,internal:10},
+  {id:"5_1",n:"家里吃火锅",him:25,her:20,narr:20,internal:8},
+  {id:"6_2",n:"海边散步",him:20,her:10,narr:15,internal:0},
+  {id:"7_1",n:"酒吧表白",him:20,her:15,narr:10,internal:5},
+  {id:"7_2",n:"公园拥抱",him:8,her:6,narr:15,internal:0},
+  {id:"8_1",n:"海边再散步",him:20,her:8,narr:8,internal:0},
+  {id:"10_1",n:"书房陪伴",him:8,her:8,narr:15,internal:5},
+  {id:"10_2",n:"客厅看剧",him:15,her:12,narr:10,internal:0},
+  {id:"10_3",n:"阳台看星星",him:12,her:8,narr:5,internal:0},
+];
+
+const W=1000,H=420,M={t:30,l:60,r:30,b:60};
+const IW=W-M.l-M.r,IH=H-M.t-M.b;
+const barW=IW/scenes.length;
+const maxTotal=d3.max(scenes,s=>s.him+s.her+s.narr+s.internal);
+
+const svg=d3.select("#chart").append("svg").attr("width",W).attr("height",H);
+const tip=d3.select("#tooltip");
+
+// Stacked bar chart
+const keys=["him","her","narr","internal"];
+const colors={him:"#4A90D9",her:"#E17055",narr:"#B8C6D0",internal:"#F5A623"};
+const labels={him:"他对白",her:"她对白",narr:"叙述",internal:"内心独白"};
+
+scenes.forEach((sc,i)=>{
+  const x=M.l+i*barW;
+  let yOffset=0;
+
+  keys.forEach(k=>{
+    const val=sc[k];
+    if(val===0)return;
+    const barH=(val/maxTotal)*IH;
+    svg.append("rect").attr("x",x+2).attr("y",M.t+IH-barH-yOffset).attr("width",barW-4).attr("height",barH)
+      .attr("fill",colors[k]).attr("opacity",0.85).attr("rx",2)
+      .on("mouseenter",function(){
+        tip.style("opacity",1).html(`<b>${sc.id} ${sc.n}</b><br>${labels[k]}: ${val} 行<br>共: ${sc.him+sc.her+sc.narr+sc.internal} 行`)
+          .style("left",(d3.event.pageX+12)+"px").style("top",(d3.event.pageY-10)+"px");
+      })
+      .on("mouseleave",()=>tip.style("opacity",0));
+    yOffset+=barH;
+  });
+
+  // Scene ID
+  svg.append("text").attr("x",x+barW/2).attr("y",M.t+IH+16).attr("text-anchor","middle")
+    .attr("font-size",9).attr("fill","#999").text(sc.id);
+});
+
+// Ratio line: his vs her dialogue ratio
+const ratioY=M.t-8;
+keys.slice(0,2).forEach((k,i)=>{
+  scenes.forEach((sc,ci)=>{
+    const x=M.l+(ci+0.5)*barW;
+    const total=sc.him+sc.her;
+    const ratio=total===0?0.5:sc.him/total;
+    const ly=ratioY-(i*14);
+    if(i===0){
+      svg.append("circle").attr("cx",x).attr("cy",ly).attr("r",3)
+        .attr("fill",ratio>0.5?colors.him:ratio<0.5?colors.her:"#ccc").attr("opacity",0.6);
+    }
+  });
+});
+
+// His/Her ratio label
+svg.append("text").attr("x",M.l-8).attr("y",ratioY-2).attr("text-anchor","end").attr("font-size",9).attr("fill","#888").text("对白比→");
+svg.append("circle").attr("cx",M.l+8).attr("cy",ratioY-12).attr("r",3).attr("fill",colors.him).attr("opacity",0.6);
+svg.append("text").attr("x",M.l+14).attr("y",ratioY-9).attr("font-size",9).attr("fill","#aaa").text("他多");
+svg.append("circle").attr("cx",M.l+8+40).attr("cy",ratioY-12).attr("r",3).attr("fill",colors.her).attr("opacity",0.6);
+svg.append("text").attr("x",M.l+14+40).attr("y",ratioY-9).attr("font-size",9).attr("fill","#aaa").text("她多");
+
+d3.select("#legend").html(
+  Object.entries(labels).map(([k,v])=>`<span class="legend-item"><span class="legend-dot" style="background:${colors[k]}"></span>${v}</span>`).join("")
+  +`<span style="font-size:11px;color:#bbb;margin-left:12px">顶部圆点=谁的对白多</span>`
+);
+</script>
+</body>
+</html>
