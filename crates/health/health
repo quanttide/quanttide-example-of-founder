@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""健康检查 — 每周情绪状态分析与记录
+
+Usage:
+  python3 health.py check          # 本周情绪检查
+  python3 health.py track          # 本周情绪记录到 CSV
+  python3 health.py profile        # 生成情绪基线
+  python3 health.py track --show   # 查看历史趋势
+
+Depends: openai, pyyaml
+Set: DEEPSEEK_API_KEY
+"""
+
+import os, sys, json, csv, subprocess, argparse
+from pathlib import Path
+from datetime import datetime, timedelta
+from collections import defaultdict, Counter
+from openai import OpenAI
+
+EXTRACT_PROMPT = """从以下文本中提取情绪状态。
+输出JSON：
+{"dominant_mood":"主导情绪","valence":-3~3,"arousal":0~5,"warning_signs":[],"emotional_needs":[]}
+纯JSON。"""
+
+CLIENT = OpenAI(
+    api_key=os.environ.get("LLM_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or "",
+    base_url=os.environ.get("LLM_BASE_URL", "https://api.deepseek.com"),
+)
+
+MODEL = os.environ.get("LLM_MODEL", "deepseek-chat")
+
+def git_content(repo_path, days=None, max_commits=100):
+    """Get text from recent git commits in a repo."""
+    since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d") if days else None
+    cmd = ["git", "-C", str(repo_path), "-c", "core.quotepath=false", "log"]
+    if since:
+        cmd += [f"--since={since}"]
+    cmd += [f"--max-count={max_commits}", "--format=%H|%ai|%s", "--name-only"]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    texts, current = [], None
+    for line in r.stdout.strip().split("\n"):
+        if "|" in line and len(line.split("|")[0]) == 40:
+            if current:
+                texts.append(_file_content(repo_path, current))
+            current = {"hash": line.split("|")[0], "date": line.split("|")[1], "files": []}
+        elif current and line.strip():
+            current["files"].append(line.strip())
+    if current:
+        texts.append(_file_content(repo_path, current))
+    return "\n\n".join(t for t in texts if t)[:8000]
+
+def _file_content(repo_path, commit):
+    for f in commit["files"][:2]:
+        r = subprocess.run(["git", "-C", str(repo_path), "show", f"{commit['hash']}:{f}"],
+                           capture_output=True, text=True, timeout=5)
+        if r.returncode == 0 and r.stdout.strip():
+            return f"[{commit['date'][:10]}] {r.stdout[:2000]}"
+    return ""
+
+def extract(text):
+    if not text:
+        return {}
+    r = CLIENT.chat.completions.create(
+        model=MODEL, messages=[{"role":"system","content":EXTRACT_PROMPT},
+                               {"role":"user","content":text[:4000]}],
+        response_format={"type":"json_object"}, temperature=0.1, max_tokens=512)
+    try:
+        return json.loads(r.choices[0].message.content.strip())
+    except json.JSONDecodeError:
+        return {}
+
+def cmd_check(args):
+    diary = git_content(args.memory, days=args.days)
+    fiction = git_content(args.fiction, days=args.days)
+    print(f"日记: {len(diary)}字 小说: {len(fiction)}字")
+    d, f = extract(diary), extract(fiction)
+    dv, fv = d.get("valence", 0), f.get("valence", 0)
+    gap = (fv - dv) if isinstance(dv, (int,float)) and isinstance(fv, (int,float)) else 0
+    print(f"\n现实: {d.get('dominant_mood','?')}({dv})  创作: {f.get('dominant_mood','?')}({fv})  差距: {gap:+.1f}")
+
+def cmd_track(args):
+    if args.show:
+        _show_trend(args)
+        return
+    diary, fiction = git_content(args.memory, days=7), git_content(args.fiction, days=7)
+    d, f = extract(diary), extract(fiction)
+    dv, fv = d.get("valence"), f.get("valence")
+    gap = (fv - dv) if isinstance(dv, (int,float)) and isinstance(fv, (int,float)) else ""
+    row = {
+        "week": f"{datetime.now().isocalendar()[0]}-W{datetime.now().isocalendar()[1]:02d}",
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "diary_present": "1" if diary else "0", "diary_mood": d.get("dominant_mood",""),
+        "diary_valence": dv if isinstance(dv,(int,float)) else "",
+        "fiction_present": "1" if fiction else "0", "fiction_mood": f.get("dominant_mood",""),
+        "fiction_valence": fv if isinstance(fv,(int,float)) else "",
+        "gap": gap, "signals": "; ".join(f.get("warning_signs",[]))[:100],
+    }
+    csv_path = Path(args.csv)
+    exists = csv_path.exists()
+    with open(csv_path, "a", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(row.keys()))
+        if not exists:
+            w.writeheader()
+        w.writerow(row)
+    print(f"已记录 {row['week']} → {csv_path}")
+
+def _show_trend(args):
+    csv_path = Path(args.csv)
+    if not csv_path.exists():
+        print("暂无数据"); return
+    with open(csv_path, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    print(f"共 {len(rows)} 周\n")
+    for r in rows[-10:]:
+        print(f"{r['week']:<10} {r['date']:<12} 日记:{r['diary_valence']:<6} 小说:{r['fiction_valence']:<6} 差距:{r.get('gap',''):<6}")
+    vals = [float(r.get("diary_valence",0)) for r in rows if r.get("diary_valence")]
+    fvs = [float(r.get("fiction_valence",0)) for r in rows if r.get("fiction_valence")]
+    if vals: print(f"\n日记均值: {sum(vals)/len(vals):.2f}")
+    if fvs: print(f"小说均值: {sum(fvs)/len(fvs):.2f}")
+
+def cmd_profile(args):
+    mem = _daily_content(args.memory, 500)
+    fic = _daily_content(args.fiction, 500)
+    mem_sample, fic_sample = dict(list(mem.items())[:20]), dict(list(fic.items())[:20])
+    print(f"分析 {len(mem_sample)} 天日记 + {len(fic_sample)} 天小说...")
+    d_vals, f_vals, d_needs, f_needs = [], [], Counter(), Counter()
+    for date, text in mem_sample.items():
+        s = extract(text)
+        if s.get("valence") is not None: d_vals.append(s["valence"])
+        for n in s.get("emotional_needs",[]): d_needs[n] += 1
+    for date, text in fic_sample.items():
+        s = extract(text)
+        if s.get("valence") is not None: f_vals.append(s["valence"])
+        for n in s.get("emotional_needs",[]): f_needs[n] += 1
+    da = sum(d_vals)/len(d_vals) if d_vals else 0
+    ds = (sum((v-da)**2 for v in d_vals)/len(d_vals))**0.5 if d_vals else 0
+    fa = sum(f_vals)/len(f_vals) if f_vals else 0
+    profile = {
+        "baseline": {"diary_avg_valence": round(da,2), "diary_volatility": round(ds,2),
+                     "fiction_avg_valence": round(fa,2), "typical_gap": round(fa-da,2)},
+        "thresholds": {"warning_if_below": round(da-ds,2) if ds else -2}
+    }
+    out = Path(args.output) / "profile.yaml"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    import yaml
+    with open(out, "w", encoding="utf-8") as f:
+        yaml.dump(profile, f, allow_unicode=True, sort_keys=False)
+    print(f"基线 → {out}")
+    print(f"日记 {da:.1f}±{ds:.1f}  小说 {fa:.1f}  差距 {fa-da:+.1f}  预警 <{da-ds:.1f}")
+
+def _daily_content(repo_path, max_commits=500):
+    r = subprocess.run(["git","-C",str(repo_path),"-c","core.quotepath=false","log",
+                        f"--max-count={max_commits}","--format=%H|%ai|%s","--name-only"],
+                       capture_output=True, text=True, timeout=15)
+    days, current = defaultdict(list), None
+    for line in r.stdout.strip().split("\n"):
+        if "|" in line and len(line.split("|")[0]) == 40:
+            if current: days[current["date"][:10]].append(current)
+            p = line.split("|", 2); current = {"hash":p[0],"date":p[1],"files":[]}
+        elif current and line.strip():
+            current["files"].append(line.strip())
+    if current: days[current["date"][:10]].append(current)
+    result = {}
+    for date, commits in sorted(days.items()):
+        texts = []
+        for c in commits[:3]:
+            t = _file_content(repo_path, c)
+            if t: texts.append(t); break
+        if texts: result[date] = "\n\n".join(texts)
+    return result
+
+def main():
+    p = argparse.ArgumentParser(description="健康检查")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    for name, help_text in [("check","本周情绪检查"),("track","记录到CSV"),("profile","生成基线")]:
+        sp = sub.add_parser(name, help=help_text)
+        sp.add_argument("--memory", default="~/docs/memory")
+        sp.add_argument("--fiction", default="~/docs/fiction")
+        if name == "check":
+            sp.add_argument("--days", type=int, default=7)
+        elif name == "track":
+            sp.add_argument("--csv", default=str(Path(__file__).parent/"HEALTH.csv"))
+            sp.add_argument("--show", action="store_true", help="查看历史")
+        elif name == "profile":
+            sp.add_argument("--output", "-o", default=str(Path(__file__).parent/"output"))
+    args = p.parse_args()
+    args.memory = Path(os.path.expanduser(str(args.memory)))
+    args.fiction = Path(os.path.expanduser(str(args.fiction)))
+    globals()[f"cmd_{args.cmd}"](args)
+
+if __name__ == "__main__":
+    main()
