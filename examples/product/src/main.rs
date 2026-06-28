@@ -4,6 +4,8 @@ use quanttide_agent::Message;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
+const BLUEPRINT_DIR: &str = "docs/dev";
+
 #[derive(Parser)]
 #[command(version, name = "product-blueprint")]
 struct Cli {
@@ -71,11 +73,7 @@ fn template_by_perspective(p: &Perspective) -> Vec<(&'static str, &'static str, 
 // ── init ──
 
 fn cmd_init(path: &std::path::Path, force: bool) {
-    let dir = if path.as_os_str().is_empty() {
-        PathBuf::from(".")
-    } else {
-        path.to_path_buf()
-    };
+    let dir = path.to_path_buf();
     if !dir.exists() {
         eprintln!("error: directory does not exist: {}", dir.display());
         std::process::exit(1);
@@ -103,7 +101,7 @@ fn cmd_init(path: &std::path::Path, force: bool) {
 // ── generate ──
 
 fn cmd_generate(perspective: &Perspective, brief: &str) {
-    let dir = PathBuf::from("docs/dev");
+    let dir = PathBuf::from(BLUEPRINT_DIR);
     std::fs::create_dir_all(&dir).unwrap();
     let llm = LLM::default();
     for (name, filename, template_content) in &template_by_perspective(perspective) {
@@ -152,15 +150,18 @@ fn cmd_check(perspective: Option<&Perspective>) {
     // 1. Read files — only send filled content + section headings as context
     let mut bundle = String::new();
     let mut has_file = false;
-    for (name, filename, _tmpl) in &template_by_perspective(p) {
-        let src = PathBuf::from(filename);
+    for (name, filename, tmpl) in &template_by_perspective(p) {
+        let src = PathBuf::from(BLUEPRINT_DIR).join(filename);
         if !src.exists() {
             bundle.push_str(&format!("[{}] {} — FILE NOT FOUND\n", name, filename));
             continue;
         }
         has_file = true;
         let content = std::fs::read_to_string(&src).unwrap();
-        bundle.push_str(&format!("=== {} ({}) ===\n{}\n", name, filename, content));
+        bundle.push_str(&format!(
+            "=== {} ({}) ===\n[TEMPLATE]\n{}\n[FILLED DRAFT]\n{}\n",
+            name, filename, tmpl, content
+        ));
     }
 
     if !has_file {
@@ -185,38 +186,7 @@ fn cmd_check(perspective: Option<&Perspective>) {
         CompleteOptions::default(),
     ) {
         Ok(resp) => {
-            let text = resp.content.trim();
-            // ponytail: parse each line as JSON, print nicely
-            for line in text.lines() {
-                let line = line.trim();
-                if line.is_empty() || line.starts_with("```") {
-                    continue;
-                }
-                // ponytail: peel surrounding brackets if LLM wraps in array
-                let cleaned = line
-                    .trim_start_matches('[')
-                    .trim_end_matches(']')
-                    .trim_end_matches(',');
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(cleaned) {
-                    let perspective = val["perspective"].as_str().unwrap_or("?");
-                    let section = val["section"].as_str().unwrap_or("?");
-                    let quality = val["quality"].as_str().unwrap_or("?");
-                    let issues = val["issues"].as_str().unwrap_or("");
-                    let icon = match quality {
-                        "empty" => "⬜",
-                        "poor" => "🟡",
-                        "adequate" => "🟢",
-                        "good" => "✅",
-                        _ => "❓",
-                    };
-                    let iss = if issues.is_empty() {
-                        String::new()
-                    } else {
-                        format!(" — {}", issues)
-                    };
-                    println!("{} [{:>12}] {}{}", icon, perspective, section, iss);
-                }
-            }
+            println!("{}", resp.content.trim());
         }
         Err(e) => {
             eprintln!("error: LLM call failed: {}", e);
