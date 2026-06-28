@@ -38,6 +38,7 @@ check      → 可选，AI 辅助找漏洞
 - `skeleton_from` 已删除
 - `check` 提示词改辅助审查
 - `--brief` 测试通过：围棋助手 demo 产出 196 行初稿
+- 4 个 bug 修复：check 传模板、check 直出文本、路径统一用常量、init 删死代码
 
 ### 不变
 
