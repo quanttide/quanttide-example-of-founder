@@ -32,6 +32,13 @@ generate   → AI 读取模板 + brief，生成 docs/dev/ 初稿
 check      → 可选，AI 辅助找漏洞
 ```
 
+### 已实现（2026-06-28）
+
+- `generate` 接收 `--brief`，调用 LLM，输出到 `docs/dev/`
+- `skeleton_from` 已删除
+- `check` 提示词改辅助审查
+- `--brief` 测试通过：围棋助手 demo 产出 196 行初稿
+
 ### 不变
 
 - `init` 逻辑不变
