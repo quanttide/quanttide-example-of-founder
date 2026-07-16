@@ -10,15 +10,15 @@ struct Cli {
 #[derive(Subcommand)]
 enum LabCommands {
     #[command(subcommand)]
-    Blueprint(product_blueprint::Commands),
-    #[command(subcommand)]
     Health(health::Commands),
+    #[command(subcommand)]
+    Cogni(cogni::Commands),
 }
 
 fn main() {
     let cli = Cli::parse();
     match cli.cmd {
-        LabCommands::Blueprint(cmd) => product_blueprint::dispatch(cmd),
         LabCommands::Health(cmd) => health::dispatch(cmd),
+        LabCommands::Cogni(cmd) => cogni::dispatch(cmd),
     }
 }
