@@ -1,8 +1,5 @@
 use clap::{Args, Subcommand};
-use quanttide_agent::llm::{CompleteOptions, LLM};
-use quanttide_agent::Message;
-use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use std::collections::HashSet;
 
 const TRANSITION_WORDS: &[&str] = &["但是", "因此", "例如", "然而", "所以", "不过", "而且", "此外", "总之", "也就是说", "换句话说", "具体来说", "另一方面", "与此同时", "尽管如此"];
 
@@ -45,7 +42,6 @@ fn cmd_check(args: &CheckArgs) {
 }
 
 struct Document {
-    lines: Vec<String>,
     paragraphs: Vec<Paragraph>,
     tables: Vec<Table>,
 }
@@ -63,14 +59,14 @@ struct Table {
 }
 
 fn parse_document(text: &str) -> Document {
-    let lines: Vec<String> = text.lines().map(|l| l.to_string()).collect();
+    let lines: Vec<&str> = text.lines().collect();
     let mut paragraphs = Vec::new();
     let mut tables = Vec::new();
     let mut i = 0;
     while i < lines.len() {
-        let line = &lines[i];
+        let line = lines[i];
         if let Some(level) = heading_level(line) {
-            paragraphs.push(Paragraph { line_start: i, text: line.clone(), is_heading: true, heading_level: level });
+            paragraphs.push(Paragraph { line_start: i, text: line.to_string(), is_heading: true, heading_level: level });
         } else if line.trim_start().starts_with('|') && line.trim_end().ends_with('|') {
             let mut rows = Vec::new();
             while i < lines.len() && lines[i].trim_start().starts_with('|') {
@@ -81,11 +77,11 @@ fn parse_document(text: &str) -> Document {
             tables.push(Table { line_start: i - rows.len(), rows });
             continue;
         } else if !line.trim().is_empty() {
-            paragraphs.push(Paragraph { line_start: i, text: line.clone(), is_heading: false, heading_level: 0 });
+            paragraphs.push(Paragraph { line_start: i, text: line.to_string(), is_heading: false, heading_level: 0 });
         }
         i += 1;
     }
-    Document { lines, paragraphs, tables }
+    Document { paragraphs, tables }
 }
 
 fn heading_level(line: &str) -> Option<usize> {
@@ -105,19 +101,6 @@ struct RuleResult {
     details: Vec<String>,
 }
 
-static LLM_CACHE: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
-
-fn llm_cache_get(key: &str) -> Option<String> {
-    let cache = LLM_CACHE.lock().ok()?;
-    cache.as_ref().and_then(|c| c.get(key).cloned())
-}
-
-fn llm_cache_set(key: String, value: String) {
-    if let Ok(mut cache) = LLM_CACHE.lock() {
-        cache.get_or_insert_with(HashMap::new).insert(key, value);
-    }
-}
-
 fn run_rules(doc: &Document) -> Vec<RuleResult> {
     let mut results = vec![
         title_depth(&doc),
@@ -134,26 +117,51 @@ fn run_rules(doc: &Document) -> Vec<RuleResult> {
 }
 
 fn logic_jump(doc: &Document) -> RuleResult {
+    let api_key = std::env::var("LLM_API_KEY").unwrap_or_default();
+    if api_key.is_empty() {
+        return RuleResult { name: "逻辑跳跃", score: 100.0, max_score: 100.0, details: vec!["未配置 LLM，跳过".to_string()] };
+    }
     let mut details = Vec::new();
     let texts: Vec<(usize, &str)> = doc.paragraphs.iter().filter(|p| !p.is_heading).map(|p| (p.line_start, p.text.as_str())).collect();
-    let prompt = "判断以下相邻两段之间是否有逻辑跳跃（突然转换话题、缺少过渡、因果关系断裂）。只输出JSON：{\"jump\":true/false,\"reason\":\"\"} 纯JSON。";
-    let llm = LLM::default();
-    let mut jumps = 0;
-    for i in 1..texts.len() {
-        let cache_key = format!("{}{}", texts[i - 1].1, texts[i].1);
-        let result = llm_cache_get(&cache_key).unwrap_or_else(|| {
-            let input = format!("段落A：{}\n段落B：{}", texts[i - 1].1, texts[i].1);
-            let resp = llm.complete(&[Message::new("system", prompt), Message::new("user", &input)], CompleteOptions::default()).ok();
-            let val = resp.and_then(|r| serde_json::from_str::<serde_json::Value>(&r.content).ok()).unwrap_or_default();
-            let out = val["jump"].as_bool().unwrap_or(false).to_string();
-            llm_cache_set(cache_key, out.clone());
-            out
-        });
-        if result == "true" {
-            jumps += 1;
-            details.push(format!("第 {} 行与第 {} 行之间：逻辑跳跃", texts[i - 1].0 + 1, texts[i].0 + 1));
-        }
+    if texts.len() < 2 {
+        return RuleResult { name: "逻辑跳跃", score: 100.0, max_score: 100.0, details: vec!["段落不足".to_string()] };
     }
+    let body = serde_json::json!({
+        "model": std::env::var("LLM_MODEL").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| "deepseek-v4-flash".to_string()),
+        "messages": [
+            {"role": "system", "content": "你是一个文档逻辑检测助手。找出文档中相邻段落之间的逻辑跳跃（突然转换话题、缺少过渡、因果关系断裂）。输出JSON数组，每个元素：{\"index\":段落序号,\"jump\":true/false,\"reason\":\"\"}"},
+            {"role": "user", "content": texts.iter().enumerate().map(|(i, (_, t))| format!("{}: {}", i, t)).collect::<Vec<_>>().join("\n\n")}
+        ],
+        "max_tokens": 300
+    });
+    let client = ureq::AgentBuilder::new().timeout_connect(std::time::Duration::from_secs(5)).timeout_read(std::time::Duration::from_secs(10)).build();
+    let base_url = std::env::var("LLM_BASE_URL").ok().filter(|s| !s.is_empty()).unwrap_or_else(|| "https://api.deepseek.com".to_string());
+    let resp = client.post(&format!("{}/chat/completions", base_url))
+        .set("Authorization", &format!("Bearer {}", api_key))
+        .set("Content-Type", "application/json")
+        .send_json(&body);
+    let jumps = match resp {
+        Ok(r) => {
+            let data: serde_json::Value = r.into_json().unwrap_or_default();
+            let content = data["choices"][0]["message"]["content"].as_str().unwrap_or("[]");
+            let items: Vec<serde_json::Value> = serde_json::from_str(content).unwrap_or_default();
+            for item in &items {
+                if item["jump"].as_bool().unwrap_or(false) {
+                    if let Some(idx) = item["index"].as_u64() {
+                        let idx = idx as usize;
+                        if idx > 0 && idx < texts.len() {
+                            details.push(format!("第 {} 行与第 {} 行之间：{}", texts[idx - 1].0 + 1, texts[idx].0 + 1, item["reason"].as_str().unwrap_or("逻辑跳跃")));
+                        }
+                    }
+                }
+            }
+            items.iter().filter(|i| i["jump"].as_bool().unwrap_or(false)).count()
+        }
+        Err(e) => {
+            details.push(format!("LLM 调用失败: {}", e));
+            0
+        }
+    };
     let score = if details.is_empty() { 100.0 } else { f64::max(0.0, 100.0 - jumps as f64 * 30.0) };
     if details.is_empty() {
         details.push("未检测到逻辑跳跃".to_string());
