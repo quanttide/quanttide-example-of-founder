@@ -275,46 +275,33 @@ fn concept_density(doc: &Document) -> RuleResult {
 }
 
 fn print_report(results: &[RuleResult], mode: Mode) {
+    let total: f64 = results.iter().map(|r| r.score).sum();
+    let max: f64 = results.iter().map(|r| r.max_score).sum();
+    let pct = total / max * 100.0;
+    let level = if pct >= 80.0 { "低" } else { if pct >= 60.0 { "中" } else { "高" } };
     match mode {
-        Mode::Summary => print_summary(results),
-        Mode::Normal => print_normal(results),
-        Mode::Verbose => print_verbose(results),
-    }
-}
-
-fn print_summary(results: &[RuleResult]) {
-    let total: f64 = results.iter().map(|r| r.score).sum();
-    let max: f64 = results.iter().map(|r| r.max_score).sum();
-    let pct = total / max * 100.0;
-    let level = if pct >= 80.0 { "低" } else if pct >= 60.0 { "中" } else { "高" };
-    println!("认知负担评分: {:.0}/{} ({:.0}%) - 负担{}", total, max, pct, level);
-}
-
-fn print_normal(results: &[RuleResult]) {
-    println!("{:─^60}", " 认知负担检测报告 ");
-    println!();
-    for r in results {
-        let pct = r.score / r.max_score * 100.0;
-        let status = if pct >= 80.0 { "✓" } else if pct >= 60.0 { "△" } else { "✗" };
-        println!(" {} {:<10} {:>5.0}/{} ({:.0}%)", status, r.name, r.score, r.max_score, pct);
-    }
-    let total: f64 = results.iter().map(|r| r.score).sum();
-    let max: f64 = results.iter().map(|r| r.max_score).sum();
-    println!("{:─^60}", "");
-    let pct = total / max * 100.0;
-    let level = if pct >= 80.0 { "低" } else if pct >= 60.0 { "中" } else { "高" };
-    println!(" 总分 {:.0}/{} ({:.0}%) - 认知负担{}", total, max, pct, level);
-}
-
-fn print_verbose(results: &[RuleResult]) {
-    print_normal(results);
-    println!();
-    for r in results {
-        println!("── {} ──", r.name);
-        for d in &r.details {
-            println!("  {}", d);
+        Mode::Summary => println!("{}% ({})", pct as u32, level),
+        Mode::Normal => {
+            println!("{}% ({})", pct as u32, level);
+            for r in results {
+                let p = r.score / r.max_score * 100.0;
+                if p < 80.0 {
+                    println!("  {}:{:.0}%", r.name, p);
+                }
+            }
         }
-        println!();
+        Mode::Verbose => {
+            println!("{}% ({})", pct as u32, level);
+            for r in results {
+                let p = r.score / r.max_score * 100.0;
+                if p < 80.0 {
+                    println!("  {}:{:.0}%", r.name, p);
+                    for d in &r.details {
+                        println!("    {}", d);
+                    }
+                }
+            }
+        }
     }
 }
 
