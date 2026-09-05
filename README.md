@@ -9,8 +9,8 @@
 | 层 | 位置 | 性质 |
 |----|------|------|
 | 规格 | `docs/` | 方法论、流程与规则，是持久的沉淀物 |
-| 数据 | `data/` | 案例与语料，结构化是演进方向 |
-| 代码 | 按需临时搭建 | 快更迭的验证载体，不长期保留，当前为空 |
+| 数据 | `data/` | 案例与语料，结构化是演进方向；程序读写的数据也在这里（如 `data/write/*.json`） |
+| 代码 | `src/` | 轻量脚本，快更迭的验证载体，按需重建与废弃 |
 
 ## 目录结构
 
@@ -18,14 +18,19 @@
 docs/
   write/     写作规则与创作日志的收集整理流程
 data/
+  write/     任务扫描数据（*.json，看板读写）
   agent/     情绪结构化推演实例
   work/      工作方式语料
+src/
+  task_board.py   任务看板 GUI（tkinter）
+tests/           固定测试（unittest，不依赖图形界面）
 ```
 
 ## 当前状态
 
-- 实现层已清空：前言精修与创作谈引擎的原型代码已删除，规则沉淀为 `docs/write/writing-rules.md`，后续在对话中直接套用
-- 创作日志的收集与整理流程：`docs/write/creation-log-workflow.md`
+- 任务看板 `src/task_board.py`：读取 `data/write/*.json`，卡片呈现任务，选定与意见反馈自动写回 json；运行 `python3 src/task_board.py [json路径]`，默认打开 `data/write/` 最新一份
+- 固定测试 `tests/`：`python3 -m unittest discover -s tests`，锁定看板读写与状态行为，改代码先跑它
+- 任务发现规则：`docs/write/task-discovery.md`；写作规则：`docs/write/writing-rules.md`；流程：`docs/write/creation-log-workflow.md`
 
 ## 工作方式
 
