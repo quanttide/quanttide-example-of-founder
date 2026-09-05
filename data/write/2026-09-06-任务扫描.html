@@ -28,6 +28,16 @@
   .hint { font-size: 13px; margin-top: 4px; color: #57524a; }
   .hint::before { content: "建议 "; color: var(--accent); font-weight: 600; }
   .meta2 { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: ui-monospace, Menlo, monospace; }
+  .fb-toggle { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 0; margin-top: 6px; }
+  .fb-toggle:hover { color: var(--accent); }
+  .fb-toggle.has { color: var(--accent); font-weight: 600; }
+  .fb { display: none; margin-top: 8px; }
+  .fb.open { display: block; }
+  .fb-tags { display: flex; gap: 6px; margin-bottom: 6px; }
+  .fb-tag { font-size: 12px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); cursor: pointer; color: var(--muted); }
+  .fb-tag.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .fb input { width: 100%; font-size: 13px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-family: inherit; }
+  .fb input:focus { outline: none; border-color: var(--accent); }
   .bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); padding: 12px 20px; display: none; }
   .bar .in { max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
   .bar .cnt { font-size: 14px; }
@@ -40,7 +50,7 @@
 <body>
 <div class="wrap">
   <h1>任务扫描 2026-09-06</h1>
-  <div class="sub">《暗恋十年，我和她还是初次见面》大纲 1–29，现缺 4、6、7、21 · 标「推荐」的是建议本轮先做的 · 点击选中，复制清单即可开工</div>
+  <div class="sub">《暗恋十年，我和她还是初次见面》大纲 1–29，现缺 4、6、7、21 · 点卡片=选定做 · 每卡可写意见（先做/缓做/不做＋一句话）· 复制清单连同意见一起带回</div>
   <div class="filters" id="filters"></div>
   <div id="list"></div>
 </div>
@@ -93,31 +103,57 @@ const tasks = [
     hint: "不急，动目录前先确认。",
     meta: "校园 1_素材/2_提纲；重生 4_成稿" },
 ];
+const TAGS = ["先做", "缓做", "不做", "有异议"];
 const novFilters = ["全部", "职场言情", "草稿箱", "校园言情 / 重生言情"];
 let sel = new Set(), novel = "全部";
+const fb = {}; // i -> {tag, text}
+try { Object.assign(fb, JSON.parse(localStorage.getItem("task-fb") || "{}")); } catch (e) {}
 const $ = s => document.querySelector(s);
+function save() { try { localStorage.setItem("task-fb", JSON.stringify(fb)); } catch (e) {} }
+function fbText(i) { const f = fb[i]; return f ? [f.tag, f.text].filter(Boolean).join("：") : ""; }
 function render() {
   $("#filters").innerHTML = novFilters.map(n =>
     `<span class="chip ${n === novel ? "on" : ""}" onclick="setN('${n}')">${n}</span>`).join("");
   const list = tasks.filter(t => novel === "全部" || t.novel === novel);
-  $("#list").innerHTML = list.map((t, i) => `
+  $("#list").innerHTML = list.map(t => {
+    const i = tasks.indexOf(t), f = fb[i] || {};
+    return `
     <div class="card ${sel.has(i) ? "sel" : ""}" onclick="toggle(${i})">
       <div class="meta"><span class="badge ${t.cls}">${t.type}</span>${t.rec ? '<span class="rec">推荐</span>' : ""}</div>
       <div class="t">${t.title}</div>
       <div class="hint">${t.hint}</div>
       <div class="meta2">${t.meta}</div>
-    </div>`).join("");
+      <button class="fb-toggle ${f.tag || f.text ? "has" : ""}" onclick="event.stopPropagation();fbOpen(${i},this)">意见${f.tag || f.text ? "：" + fbText(i) : ""} ▾</button>
+      <div class="fb" id="fb-${i}" onclick="event.stopPropagation()">
+        <div class="fb-tags">${TAGS.map(g => `<span class="fb-tag ${f.tag === g ? "on" : ""}" onclick="setTag(${i},'${g}')">${g}</span>`).join("")}</div>
+        <input placeholder="一句话说明你的想法（可留空）" value="${f.text || ""}" oninput="setText(${i},this.value)">
+      </div>
+    </div>`;
+  }).join("");
   const picked = tasks.filter((t, i) => sel.has(i));
-  $("#bar").style.display = picked.length ? "block" : "none";
-  $("#cnt").textContent = `已选 ${picked.length} 项`;
+  const nFb = Object.keys(fb).filter(i => fbText(i)).length;
+  $("#bar").style.display = (picked.length || nFb) ? "block" : "none";
+  $("#cnt").textContent = `已选 ${picked.length} 项 · 意见 ${nFb} 条`;
   $("#selnames").textContent = picked.map(t => t.title).join("；");
-  $("#copy").disabled = !picked.length;
+  $("#copy").disabled = !(picked.length || nFb);
 }
+function fbOpen(i, btn) {
+  const el = document.querySelector("#fb-" + i);
+  el.classList.toggle("open");
+  btn.textContent = btn.textContent.replace(/ ▾| ▴$/, el.classList.contains("open") ? " ▴" : " ▾");
+  if (el.classList.contains("open")) el.querySelector("input").focus();
+}
+function setTag(i, g) { fb[i] = fb[i] || {}; fb[i].tag = fb[i].tag === g ? "" : g; save(); render(); }
+function setText(i, v) { fb[i] = fb[i] || {}; fb[i].text = v; save(); }
 function setN(n) { novel = n; render(); }
 function toggle(i) { sel.has(i) ? sel.delete(i) : sel.add(i); render(); }
 $("#copy").onclick = () => {
-  const txt = tasks.filter((t, i) => sel.has(i)).map(t => t.title).join("\n");
-  navigator.clipboard.writeText(`本轮选定任务：\n${txt}`).then(() => {
+  let txt = "";
+  const picked = tasks.filter((t, i) => sel.has(i));
+  if (picked.length) txt += "本轮选定任务：\n" + picked.map(t => "- " + t.title).join("\n") + "\n";
+  const fbs = Object.keys(fb).filter(i => fbText(i)).map(i => `- ${fb[i].tag || "意见"}：${tasks[i].title}${fb[i].text ? " —— " + fb[i].text : ""}`);
+  if (fbs.length) txt += "意见反馈：\n" + fbs.join("\n");
+  navigator.clipboard.writeText(txt).then(() => {
     $("#copy").textContent = "已复制";
     setTimeout(() => { $("#copy").textContent = "复制清单"; }, 1500);
   });
