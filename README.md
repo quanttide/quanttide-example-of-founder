@@ -29,6 +29,7 @@ src/         CLI 骨架与各工具实现
 ## 当前状态
 
 - 双入口架构：`lab`（CLI，无显示环境可用）与 `lab-gui`（eframe/egui），领域逻辑统一在 `laboratory_core`（`src/lib.rs`）
+- 默认 LLM：GLM `glm-5.3-flash`（凭据 `GLM_API_KEY`，模型可用 `GLM_MODEL` 覆盖）；`LAB_LLM_PROVIDER=llm/mimo` 可切换 DeepSeek/MiMo
 - 「前言精修」已实现：经 quanttide-agent 接入 LLM，规格 `docs/fiction/fiction-revision.md`
   - CLI：`lab revision <文件路径>`（传 `-` 从 stdin 读取）
   - GUI：`lab-gui` 粘贴文本评估
