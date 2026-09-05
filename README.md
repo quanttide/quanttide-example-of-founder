@@ -28,9 +28,10 @@ src/         CLI 骨架与各工具实现
 
 ## 当前状态
 
-- `lab` CLI 骨架已建立（clap），规划 `health`、`cogni` 子命令，对应 crates 尚未创建
-- `knowl` 知识抽取工具规划中，模型约束文件位于 `data/knowl/`
-- `docs/` 各篇均未实现，按优先级逐篇翻译
+- GUI 入口已建立（eframe/egui）
+- 「前言精修」已实现：经 quanttide-agent 接入 LLM，规格 `docs/fiction/fiction-revision.md`
+- 「素材改编」下一个实现：规格 `docs/fiction/fiction-adaptation.md`
+- `data/knowl/` 模型约束、其余篇目待排期
 
 ## 工作方式
 
