@@ -10,32 +10,29 @@
     --line: #e8e5df; --accent: #4a6fa5; --accent-soft: #eef2f8;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.75; }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 130px; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--ink); line-height: 1.7; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 130px; }
   h1 { font-size: 20px; margin-bottom: 4px; }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
   .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
   .chip { padding: 4px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); cursor: pointer; font-size: 13px; color: var(--muted); }
   .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s; position: relative; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; cursor: pointer; transition: border-color .15s, box-shadow .15s; position: relative; }
   .card:hover { border-color: var(--accent); }
   .card.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
   .card.sel::after { content: "✓"; position: absolute; top: 12px; right: 14px; color: var(--accent); font-weight: 700; }
-  .meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+  .meta { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
   .badge { font-size: 12px; padding: 1px 10px; border-radius: 999px; color: #fff; }
-  .act { font-size: 12px; color: var(--muted); background: var(--bg); padding: 1px 10px; border-radius: 999px; }
-  .num { font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  .rec { font-size: 12px; padding: 1px 10px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-weight: 600; }
   .t { font-weight: 600; font-size: 15px; }
-  .d { font-size: 14px; margin-top: 4px; color: #57524a; }
-  .d i { font-style: normal; color: var(--muted); }
-  .row { font-size: 13px; margin-top: 6px; color: var(--muted); }
-  .row b { color: #6b665e; font-weight: 600; }
+  .hint { font-size: 13px; margin-top: 4px; color: #57524a; }
+  .hint::before { content: "建议 "; color: var(--accent); font-weight: 600; }
+  .meta2 { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: ui-monospace, Menlo, monospace; }
   .bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); padding: 12px 20px; display: none; }
-  .bar .in { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .bar .in { max-width: 640px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
   .bar .cnt { font-size: 14px; }
   .btn { margin-left: auto; padding: 7px 18px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-size: 14px; cursor: pointer; }
   .btn:disabled { background: #c5cdd8; cursor: default; }
-  .hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .b-take { background: #b0684f; } .b-stage { background: #4a6fa5; } .b-locate { background: #7d6ba0; }
   .b-gap { background: #5e8a5e; } .b-motive { background: #a58a3f; } .b-open { background: #8a857d; } .b-struct { background: #5f7d8a; }
 </style>
@@ -43,7 +40,7 @@
 <body>
 <div class="wrap">
   <h1>任务扫描 2026-09-06</h1>
-  <div class="sub">职场言情《暗恋十年，我和她还是初次见面》大纲规划编号 1–29，现缺 4、6、7、21 · 共 10 项 · 点击卡片选中，完成后复制清单</div>
+  <div class="sub">《暗恋十年，我和她还是初次见面》大纲 1–29，现缺 4、6、7、21 · 标「推荐」的是建议本轮先做的 · 点击选中，复制清单即可开工</div>
   <div class="filters" id="filters"></div>
   <div id="list"></div>
 </div>
@@ -55,46 +52,46 @@
 </div>
 <script>
 const tasks = [
-  { id: 1, type: "同号取舍", cls: "b-take", novel: "职场言情", act: "第二幕 靠近",
-    title: "第 3 章两条故事线待取舍",
-    desc: "《展会再遇》（改稿）：王助理助攻坐第一排，她无意说漏十年前看懂过他的代码。<i>《男主演讲》（场景）：论坛怒怼恶意提问，她看到爽感之外的难过与脆弱。</i>",
-    how: "定主线后归并", where: "对应阶段", num: "编号 3" },
-  { id: 2, type: "同号取舍", cls: "b-take", novel: "职场言情", act: "第三幕 交心",
-    title: "《公园拥抱》版本待定",
-    desc: "改稿版：「你一个人，太苦了」，她落泪拥抱。场景备选：「公园拥抱 2」（男女配结婚、男主陪父亲手术）、「夜晚商场」（烤鱼后的人流烟火气与创业焦虑）。",
-    how: "确认定稿版本", where: "后续入 5_定稿/", num: "编号 15" },
-  { id: 3, type: "阶段落差", cls: "b-stage", novel: "职场言情", act: "第三幕 交心",
-    title: "表白章已改稿，待定稿",
-    desc: "《酒吧表白》——「喜欢了十年。喜欢地想要发疯」，约定「我们都原谅自己」；《海边再散步》——在一起后重游海边，「不是只有你一个人记得的」。",
-    how: "按定稿模板整理", where: "5_定稿/", num: "编号 16、17" },
-  { id: 4, type: "阶段落差", cls: "b-stage", novel: "职场言情", act: "第四幕 日常与磨合",
-    title: "两章仅有场景稿",
-    desc: "《包子店吃早餐》——老板一家的其乐融融，两人由孩子聊到未来；《航天博物馆》——男主小时候的航天梦与独行情结。",
-    how: "扩写为初稿", where: "3_初稿/", num: "编号 19、20" },
-  { id: 5, type: "阶段落差", cls: "b-stage", novel: "职场言情", act: "第四、五幕",
-    title: "六章停在改稿、一章停在初稿",
-    desc: "《书房陪伴》《赏雪谈心》《女主事业困境》《女主照顾男主》《客厅看剧》《阳台看星星》停在改稿；《书房日常》同居式日常停在初稿。",
-    how: "25 先改稿，其余逐章定稿", where: "5_定稿/", num: "编号 22–28" },
-  { id: 6, type: "未编号素材", cls: "b-locate", novel: "职场言情", act: "各幕散料",
-    title: "19 个场景碎片无编号",
-    desc: "一起吃烤鱼、咖啡厅婚礼、雨伞同行、再坐便利店、开心消消乐……多为日常线碎片，需定位章号，或确认按替代草稿保留原名。",
-    how: "定编号后重命名", where: "2_场景/", num: "" },
-  { id: 7, type: "编号缺口", cls: "b-gap", novel: "职场言情", act: "第一、二、四幕",
-    title: "4 章待补写",
-    desc: "第一幕缺 4；第二幕「靠近」中段缺 6、7——重逢之后直接跳到深夜便利店，靠近的过程偏薄；第四幕缺 21。",
-    how: "先占号再补写", where: "2_场景/ 或 3_初稿/", num: "编号 4、6、7、21" },
-  { id: 8, type: "母题待提炼", cls: "b-motive", novel: "草稿箱", act: "情绪日记",
-    title: "《命运是什么》未归档",
-    desc: "情绪日记唯一条目，尚未提炼为任何小说的母题。",
-    how: "提炼母题后归档", where: "某小说 1_母题/", num: "" },
-  { id: 9, type: "未解问题", cls: "b-open", novel: "草稿箱", act: "三部曲",
-    title: "重生言情的本质不同",
-    desc: "与职场、校园言情的本质区别尚未想明白——讨论结论写回设定篇。",
-    how: "讨论并落档", where: "4_创作设定/三部曲世界观.md", num: "" },
-  { id: 10, type: "结构偏差", cls: "b-struct", novel: "校园言情 / 重生言情", act: "目录体系",
-    title: "目录与统一规范不一致",
-    desc: "校园言情为 1_素材/2_提纲；重生言情第四阶段为 4_成稿。",
-    how: "对齐前先确认", where: "目录重命名", num: "" },
+  { type: "补写", cls: "b-gap", novel: "职场言情", rec: true,
+    title: "补写第 6、7 章，补上「靠近」的中段",
+    hint: "第 5 章吃过饭后直接跳到深夜便利店（第 8 章），靠近的过程偏薄——白天如何从同学变成熟人正好落在 6、7。",
+    meta: "落位 2_场景/ 或 3_初稿/ · 第一幕缺 4、第四幕缺 21 可后置" },
+  { type: "定稿", cls: "b-stage", novel: "职场言情", rec: true,
+    title: "定稿《酒吧表白》《海边再散步》",
+    hint: "两章是第三幕高潮且改稿已稳，定稿后表白情节全线落地。",
+    meta: "编号 16、17 · 落位 5_定稿/ · 同理可续 14《海边散步》" },
+  { type: "取舍", cls: "b-take", novel: "职场言情", rec: true,
+    title: "定第 3 章主线：展会线还是演讲线",
+    hint: "《展会再遇》已是改稿，建议以它为主线，把《男主演讲》里论坛怒怼的爽感与脆弱并进去。",
+    meta: "编号 3 · 落位 4_改稿/3_展会再遇" },
+  { type: "定稿", cls: "b-stage", novel: "职场言情",
+    title: "定稿《赏雪谈心》",
+    hint: "仓库比喻是全书母题章，也是第四幕定稿的好起点；22–28 其余各章随后逐章推进。",
+    meta: "编号 23 · 落位 5_定稿/" },
+  { type: "扩写", cls: "b-stage", novel: "职场言情",
+    title: "把《包子店吃早餐》扩成初稿",
+    hint: "场景稿里对话已现成（老板一家的其乐融融 → 两人聊未来），顺势可写。",
+    meta: "编号 19 · 落位 3_初稿/ · 《航天博物馆》(20) 同批" },
+  { type: "取舍", cls: "b-take", novel: "职场言情",
+    title: "确认《公园拥抱》定稿版本",
+    hint: "改稿版「你一个人，太苦了」定情已成立，两个场景备选可拆作素材挪去别章。",
+    meta: "编号 15 · 落位 5_定稿/" },
+  { type: "归位", cls: "b-locate", novel: "职场言情",
+    title: "给场景碎片定编号",
+    hint: "不必一次清完：定稿某章时顺手归位相关碎片即可，其余按替代草稿保留原名。",
+    meta: "2_场景/ 19 个未编号文件" },
+  { type: "提炼", cls: "b-motive", novel: "草稿箱",
+    title: "把《命运是什么》提炼成母题",
+    hint: "半页短文十分钟可完；先判断它属于哪本小说——重生味最浓。",
+    meta: "落位 某小说 1_母题/" },
+  { type: "讨论", cls: "b-open", novel: "草稿箱",
+    title: "想清楚重生言情的本质不同",
+    hint: "和上一条同源：情绪日记里「回到过去」的冲动，可能正是重生线的母题答案。",
+    meta: "落位 4_创作设定/三部曲世界观.md" },
+  { type: "对齐", cls: "b-struct", novel: "校园言情 / 重生言情",
+    title: "目录对齐统一规范",
+    hint: "不急，动目录前先确认。",
+    meta: "校园 1_素材/2_提纲；重生 4_成稿" },
 ];
 const novFilters = ["全部", "职场言情", "草稿箱", "校园言情 / 重生言情"];
 let sel = new Set(), novel = "全部";
@@ -103,24 +100,23 @@ function render() {
   $("#filters").innerHTML = novFilters.map(n =>
     `<span class="chip ${n === novel ? "on" : ""}" onclick="setN('${n}')">${n}</span>`).join("");
   const list = tasks.filter(t => novel === "全部" || t.novel === novel);
-  $("#list").innerHTML = list.map(t => `
-    <div class="card ${sel.has(t.id) ? "sel" : ""}" onclick="toggle(${t.id})">
-      <div class="meta"><span class="badge ${t.cls}">${t.type}</span><span class="act">${t.act}</span><span class="num">${t.num}</span></div>
+  $("#list").innerHTML = list.map((t, i) => `
+    <div class="card ${sel.has(i) ? "sel" : ""}" onclick="toggle(${i})">
+      <div class="meta"><span class="badge ${t.cls}">${t.type}</span>${t.rec ? '<span class="rec">推荐</span>' : ""}</div>
       <div class="t">${t.title}</div>
-      <div class="d">${t.desc}</div>
-      <div class="row"><b>动作</b> ${t.how} 　<b>落位</b> ${t.where}</div>
+      <div class="hint">${t.hint}</div>
+      <div class="meta2">${t.meta}</div>
     </div>`).join("");
-  const picked = tasks.filter(t => sel.has(t.id));
+  const picked = tasks.filter((t, i) => sel.has(i));
   $("#bar").style.display = picked.length ? "block" : "none";
   $("#cnt").textContent = `已选 ${picked.length} 项`;
   $("#selnames").textContent = picked.map(t => t.title).join("；");
   $("#copy").disabled = !picked.length;
 }
 function setN(n) { novel = n; render(); }
-function toggle(id) { sel.has(id) ? sel.delete(id) : sel.add(id); render(); }
+function toggle(i) { sel.has(i) ? sel.delete(i) : sel.add(i); render(); }
 $("#copy").onclick = () => {
-  const txt = tasks.filter(t => sel.has(t.id))
-    .map(t => `${t.title}（${t.type}；动作：${t.how}；落位：${t.where}）`).join("\n");
+  const txt = tasks.filter((t, i) => sel.has(i)).map(t => t.title).join("\n");
   navigator.clipboard.writeText(`本轮选定任务：\n${txt}`).then(() => {
     $("#copy").textContent = "已复制";
     setTimeout(() => { $("#copy").textContent = "复制清单"; }, 1500);
