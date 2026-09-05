@@ -58,7 +58,7 @@ class App(tk.Tk):
         self.geometry("640x560")
         self.path = path
         self.data = load(path)
-        self.state = self.data.setdefault("state", {"selected": [], "feedback": {}})
+        self.state = self.data.setdefault("state", {"feedback": {}})
         self.folder = "全部"
         self.pos = 0  # 当前任务在可见列表中的位置
         head = tk.Frame(self, bg="#f7f6f3")
@@ -99,8 +99,7 @@ class App(tk.Tk):
     def persist(self):
         prune_feedback(self.state)
         save(self.path, self.data)
-        picked = len(self.state["selected"])
-        self.status.config(text=f"已保存 {time.strftime('%H:%M:%S')} · 已选 {picked} · 意见 {len(self.state['feedback'])}")
+        self.status.config(text=f"已保存 {time.strftime('%H:%M:%S')} · 意见 {len(self.state['feedback'])} 条")
 
     def on_close(self):
         self.persist()
@@ -167,11 +166,7 @@ class TaskCard(tk.Frame):
                  font=("", 9), wraplength=540, justify="left").pack(anchor="w", pady=(6, 0))
         controls = tk.Frame(self, bg="white")
         controls.pack(fill="x", pady=(14, 0))
-        self.sel_var = tk.BooleanVar(value=index in app.state["selected"])
-        tk.Checkbutton(controls, text="选定做", variable=self.sel_var, bg="white",
-                       fg="#4a6fa5", activebackground="white", font=("", 11, "bold"),
-                       command=self.on_select).pack(side="left")
-        tk.Label(controls, text="标注", bg="white", fg="#8a857d", font=("", 9)).pack(side="left", padx=(18, 0))
+        tk.Label(controls, text="标注", bg="white", fg="#8a857d", font=("", 9)).pack(side="left")
         fb = app.state["feedback"].get(task["title"], {})
         self.tag_vars = {}
         for g in TAGS:
@@ -193,8 +188,8 @@ class TaskCard(tk.Frame):
         self.history_label = tk.Label(foot, text=self.history_text(fb), bg="white",
                                       fg="#8a857d", font=("", 9))
         self.history_label.pack(side="left")
-        tk.Button(foot, text="记录本次标注", bg="#4a6fa5", fg="white", relief="flat",
-                  font=("", 9), padx=10, pady=1, command=self.on_record).pack(side="right")
+        tk.Button(foot, text="保存并下一个 →", bg="#4a6fa5", fg="white", relief="flat",
+                  font=("", 10, "bold"), padx=12, pady=2, command=self.on_save).pack(side="right")
 
     def history_text(self, fb):
         n = len(fb.get("history", []))
@@ -205,12 +200,6 @@ class TaskCard(tk.Frame):
             if var.get():
                 return g
         return ""
-
-    def on_select(self):
-        sel = set(self.app.state["selected"])
-        (sel.add if self.sel_var.get() else sel.discard)(self.index)
-        self.app.state["selected"] = sorted(sel)
-        self.app.persist()
 
     def on_tag(self, var, g):
         if var.get():
@@ -224,12 +213,13 @@ class TaskCard(tk.Frame):
         self.app.state["feedback"].setdefault(self.task["title"], {})["text"] = self.text.get("1.0", "end").strip()
         self.app.persist()
 
-    def on_record(self):
-        entry = self.app.state["feedback"].setdefault(self.task["title"], {})
-        record(entry, self.current_tag(), self.text.get("1.0", "end").strip(),
-               time.strftime("%m-%d %H:%M"))
-        self.history_label.config(text=self.history_text(entry))
+    def on_save(self):
+        tag, text = self.current_tag(), self.text.get("1.0", "end").strip()
+        if tag or text:
+            entry = self.app.state["feedback"].setdefault(self.task["title"], {})
+            record(entry, tag, text, time.strftime("%m-%d %H:%M"))
         self.app.persist()
+        self.app.next()
 
 
 def main():

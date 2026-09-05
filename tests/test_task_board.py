@@ -31,7 +31,7 @@ def sample_data():
             {"type": "定稿", "folder": "草稿箱", "rec": False,
              "title": "任务乙", "hint": "乙的提示", "meta": "m"},
         ],
-        "state": {"selected": [], "feedback": {}},
+        "state": {"feedback": {}},
     }
 
 
@@ -64,7 +64,6 @@ class FixtureTest(unittest.TestCase):
         self.assertEqual(len(titles), len(set(titles)))
 
     def test_state_defaults(self):
-        self.assertIn("selected", self.data["state"])
         self.assertIn("feedback", self.data["state"])
 
 
@@ -73,13 +72,10 @@ class RoundtripTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "x.json"
             data = sample_data()
-            data["state"] = {"selected": [1],
-                             "feedback": {"任务甲": {"tag": "先做", "text": "意见"}}}
+            data["state"] = {"feedback": {"任务甲": {"tag": "先做", "text": "意见"}}}
             task_board.save(p, data)
             loaded = task_board.load(p)
-            self.assertEqual(loaded["tasks"][1]["title"], "任务乙")
             self.assertEqual(loaded["state"]["feedback"]["任务甲"]["tag"], "先做")
-            self.assertNotIn("任务甲", [t["title"] for t in loaded["tasks"] if False])
 
     def test_save_leaves_no_tmp(self):
         with tempfile.TemporaryDirectory() as d:
@@ -91,7 +87,7 @@ class RoundtripTest(unittest.TestCase):
 
 class PruneFeedbackTest(unittest.TestCase):
     def test_empty_entries_dropped(self):
-        state = {"selected": [], "feedback": {
+        state = {"feedback": {
             "甲": {"tag": "", "text": ""},
             "乙": {"tag": "先做", "text": ""},
             "丙": {"tag": "", "text": "理由"},
@@ -102,13 +98,13 @@ class PruneFeedbackTest(unittest.TestCase):
         self.assertNotIn("甲", pruned["feedback"])
 
     def test_history_only_kept(self):
-        state = {"selected": [], "feedback": {
+        state = {"feedback": {
             "甲": {"tag": "", "text": "", "history": [{"time": "09-06 10:00", "tag": "不做", "text": ""}]},
         }}
         self.assertIn("甲", task_board.prune_feedback(state)["feedback"])
 
     def test_all_empty_gives_empty(self):
-        state = {"selected": [], "feedback": {"甲": {"tag": "", "text": ""}}}
+        state = {"feedback": {"甲": {"tag": "", "text": ""}}}
         self.assertEqual(task_board.prune_feedback(state)["feedback"], {})
 
 
