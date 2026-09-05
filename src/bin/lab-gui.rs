@@ -31,7 +31,11 @@ struct LabApp {
 
 impl Default for LabApp {
     fn default() -> Self {
-        Self { input: String::new(), result: None, rx: None }
+        Self {
+            input: String::new(),
+            result: None,
+            rx: None,
+        }
     }
 }
 

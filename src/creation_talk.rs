@@ -1,0 +1,42 @@
+//! 创作谈引擎：从创作日志提炼创作谈。
+//!
+//! 规格：docs/fiction/creation-talk-engine.md
+//! 规则可变，提炼规则的程序不变——SYSTEM_PROMPT 只写提炼方法，不写任何具体创作规则。
+
+use quanttide_agent::llm::CompleteOptions;
+use quanttide_agent::{LLM, LLMError, Message};
+
+pub const SYSTEM_PROMPT: &str = r#"你是创作谈提炼助手。用户会给你一份或多份创作日志（写作过程的记录：改了什么、怎么改的、为什么），你的任务是从中提炼出一篇「创作谈」——可复用的创作方法论。
+
+提炼方法：
+
+1. 通读全部素材，找出重复出现的做法：改了什么、怎么改的、为什么这么改。
+2. 把每个重复出现的做法写成一条规则：一句话原则（做什么）+ 日志原文作证据（引用原文片段，注明来自哪份日志的哪一段）。
+3. 证据链强制：每条规则必须能指回日志原文，指不回的不要写。宁可少，不可编。
+4. 保守输出：素材不足以支撑任何规则时，如实说"素材不足以提炼规则，需要更多改前/改后对照类的记录"。不要硬凑条目。
+5. 粒度对齐：一条规则 = 一个可执行的操作原则 + 例证。过泛（如"要多改几遍"）或只适用一次的偶发操作都不写。
+6. 冲突保留：素材中互相矛盾的实践如实记为"作者权衡项"，不强行统一。
+
+产出格式（参照《前言精修原则》的结构）：
+
+# {创作谈标题}
+
+基于 {素材说明} 归纳。
+
+## 规则 N：{一句话原则}
+
+- 证据：{日志原文片段，注明来源}
+- {操作级说明}
+
+最后附一段"本质归纳"：这些规则共同指向的交换——删掉/留下的是什么。
+
+规则的具体内容全部来自素材，不要凭空发明任何创作原则。"#;
+
+pub fn distill(llm: &LLM, journal: &str) -> Result<String, LLMError> {
+    let messages = vec![
+        Message::new("system", SYSTEM_PROMPT),
+        Message::new("user", journal),
+    ];
+    llm.complete(&messages, CompleteOptions::default())
+        .map(|r| r.content)
+}

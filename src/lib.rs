@@ -3,6 +3,7 @@
 //! GUI（lab-gui）与 CLI（lab）均为薄壳，领域逻辑统一在这里实现，
 //! 以 `docs/` 为规格、以 `data/` 为数据。
 
+pub mod creation_talk;
 pub mod revision;
 
 use quanttide_agent::{LLM, Settings};
@@ -23,8 +24,16 @@ fn provider() -> String {
 pub fn llm_from_env() -> LLM {
     let settings = Settings::from_env();
     match provider().as_str() {
-        "llm" => LLM::new(&settings.llm_model, &settings.llm_base_url, &settings.llm_api_key),
-        "mimo" => LLM::new(&settings.mimo_model, &settings.mimo_base_url, &settings.mimo_api_key),
+        "llm" => LLM::new(
+            &settings.llm_model,
+            &settings.llm_base_url,
+            &settings.llm_api_key,
+        ),
+        "mimo" => LLM::new(
+            &settings.mimo_model,
+            &settings.mimo_base_url,
+            &settings.mimo_api_key,
+        ),
         _ => LLM::new(
             &std::env::var("GLM_MODEL").unwrap_or_else(|_| GLM_DEFAULT_MODEL.to_string()),
             &settings.glm_base_url,
