@@ -28,8 +28,10 @@ src/         CLI 骨架与各工具实现
 
 ## 当前状态
 
-- GUI 入口已建立（eframe/egui）
+- 双入口架构：`lab`（CLI，无显示环境可用）与 `lab-gui`（eframe/egui），领域逻辑统一在 `laboratory_core`（`src/lib.rs`）
 - 「前言精修」已实现：经 quanttide-agent 接入 LLM，规格 `docs/fiction/fiction-revision.md`
+  - CLI：`lab revision <文件路径>`（传 `-` 从 stdin 读取）
+  - GUI：`lab-gui` 粘贴文本评估
 - 「素材改编」下一个实现：规格 `docs/fiction/fiction-adaptation.md`
 - `data/knowl/` 模型约束、其余篇目待排期
 

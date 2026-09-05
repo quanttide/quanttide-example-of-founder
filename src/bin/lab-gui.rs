@@ -1,6 +1,8 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+//! lab-gui — 图形界面入口。
+//!
+//! 领域逻辑见 laboratory_core，本文件只做界面呈现。
 
-mod revision;
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use eframe::egui;
 use quanttide_agent::{LLM, Settings};
@@ -44,7 +46,7 @@ impl LabApp {
         self.rx = Some(rx);
         thread::spawn(move || {
             let llm = LLM::default();
-            let res = revision::review(&llm, &text).map_err(|e| e.to_string());
+            let res = laboratory_core::revision::review(&llm, &text).map_err(|e| e.to_string());
             let _ = tx.send(res);
         });
     }
