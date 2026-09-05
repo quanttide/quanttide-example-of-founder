@@ -1,6 +1,6 @@
 //! 创作谈引擎：创作日志 → 程序 → 创作谈。
 //!
-//! 规格：docs/fiction/creation-talk-engine.md
+//! 原规格 docs/fiction/creation-talk-engine.md 已移除，规则以代码内 SYSTEM_PROMPT 为准
 //! 规则可变，提炼规则的程序不变——SYSTEM_PROMPT 只写写作方法，不写任何具体创作规则。
 //! 产出是一篇完整的文章（随笔体），不是分析报告。范本：小说仓库 创作谈/ 目录三篇。
 

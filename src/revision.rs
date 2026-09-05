@@ -1,6 +1,6 @@
 //! 前言精修助手。
 //!
-//! 规格：docs/fiction/fiction-revision.md
+//! 原规格 docs/fiction/fiction-revision.md 已移除，原则以代码内 SYSTEM_PROMPT 为准
 //! 七条原则为倾向性准则，不是硬规则；程序只产出建议，终审归作者。
 
 use quanttide_agent::llm::CompleteOptions;

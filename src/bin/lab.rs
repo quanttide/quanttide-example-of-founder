@@ -14,12 +14,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// 按《前言精修原则》评估文本（规格：docs/fiction/fiction-revision.md）
+    /// 按《前言精修原则》评估文本
     Revision {
         /// 待评估的文本文件路径，传 - 从 stdin 读取
         path: String,
     },
-    /// 从创作日志提炼创作谈（规格：docs/fiction/creation-talk-engine.md）
+    /// 从创作日志提炼创作谈
     CreationTalk {
         /// 创作日志文件路径，可传多个
         paths: Vec<String>,

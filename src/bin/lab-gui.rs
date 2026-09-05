@@ -77,7 +77,7 @@ impl eframe::App for LabApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("前言精修");
-            ui.label("规格：docs/fiction/fiction-revision.md · 七条倾向性准则，仅提供建议，作者保留判断权");
+            ui.label("七条倾向性准则，仅提供建议，作者保留判断权");
 
             if api_key_missing() {
                 ui.colored_label(
