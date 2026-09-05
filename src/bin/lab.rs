@@ -3,7 +3,7 @@
 //! 领域逻辑见 laboratory_core，本文件只做参数解析与 IO。
 
 use clap::{Parser, Subcommand};
-use quanttide_agent::LLM;
+use laboratory_core::llm_from_env;
 
 #[derive(Parser)]
 #[command(name = "lab", about = "量潮创始人实验室 CLI")]
@@ -37,7 +37,7 @@ fn main() {
                     .unwrap_or_else(|e| panic!("读取 {path} 失败：{e}"))
             };
 
-            let llm = LLM::default();
+            let llm = llm_from_env();
             match laboratory_core::revision::review(&llm, &text) {
                 Ok(out) => println!("{out}"),
                 Err(e) => {

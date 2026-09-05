@@ -5,7 +5,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use eframe::egui;
-use quanttide_agent::{LLM, Settings};
+use laboratory_core::{api_key_missing, llm_from_env};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
 
@@ -45,7 +45,7 @@ impl LabApp {
         let (tx, rx) = mpsc::channel();
         self.rx = Some(rx);
         thread::spawn(move || {
-            let llm = LLM::default();
+            let llm = llm_from_env();
             let res = laboratory_core::revision::review(&llm, &text).map_err(|e| e.to_string());
             let _ = tx.send(res);
         });
@@ -75,10 +75,10 @@ impl eframe::App for LabApp {
             ui.heading("前言精修");
             ui.label("规格：docs/fiction/fiction-revision.md · 七条倾向性准则，仅提供建议，作者保留判断权");
 
-            if Settings::default().llm_api_key.is_empty() {
+            if api_key_missing() {
                 ui.colored_label(
                     egui::Color32::YELLOW,
-                    "未检测到 LLM_API_KEY / DEEPSEEK_API_KEY，请求将会失败",
+                    "未检测到 对应供应商的 API key（LAB_LLM_PROVIDER 选择 llm/glm/mimo），请求将会失败",
                 );
             }
 
