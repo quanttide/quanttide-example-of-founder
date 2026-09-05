@@ -34,6 +34,7 @@ src/         CLI 骨架与各工具实现
   - CLI：`lab revision <文件路径>`（传 `-` 从 stdin 读取）
   - GUI：`lab-gui` 粘贴文本评估
 - 「素材改编」下一个实现：规格 `docs/fiction/fiction-adaptation.md`
+- 「创作谈引擎」已立规格：`docs/fiction/creation-talk-engine.md`——规则可变、提炼规则的程序不变，从各类创作日志提炼创作谈
 - `data/knowl/` 模型约束、其余篇目待排期
 
 ## 工作方式
