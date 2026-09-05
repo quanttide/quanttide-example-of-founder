@@ -37,25 +37,18 @@ def save(path: Path, data: dict) -> None:
 
 
 def prune_feedback(state: dict) -> dict:
-    """丢弃既无标签也无文字的意见条目。"""
-    state["feedback"] = {k: v for k, v in state["feedback"].items() if v.get("tag") or v.get("text")}
+    """丢弃无标签、无文字、也无历史的空意见条目。"""
+    state["feedback"] = {k: v for k, v in state["feedback"].items()
+                         if v.get("tag") or v.get("text") or v.get("history")}
     return state
 
 
-def copy_text(data: dict) -> str:
-    """生成复制到剪贴板的清单文本：选定任务与意见反馈。"""
-    state = data["state"]
-    lines = []
-    picked = [data["tasks"][i] for i in state["selected"]]
-    if picked:
-        lines.append("本轮选定任务：")
-        lines += ["- " + t["title"] for t in picked]
-    fbs = [f'- {v.get("tag") or "意见"}：{k}' + (f" —— {v['text']}" if v.get("text") else "")
-           for k, v in state["feedback"].items()]
-    if fbs:
-        lines.append("意见反馈：")
-        lines += fbs
-    return "\n".join(lines)
+def record(entry: dict, tag: str, text: str, when: str) -> None:
+    """把一次标注写入条目：更新当前值，并快照进历史。"""
+    if tag:
+        entry["tag"] = tag
+    entry["text"] = text
+    entry.setdefault("history", []).append({"time": when, "tag": tag or entry.get("tag", ""), "text": text})
 
 
 class App(tk.Tk):
@@ -90,8 +83,6 @@ class App(tk.Tk):
         bar.pack(fill="x", side="bottom")
         self.status = tk.Label(bar, text="", bg="white", fg="#2d2a26", font=("", 10), anchor="w")
         self.status.pack(side="left", padx=16, pady=8)
-        tk.Button(bar, text="复制清单", bg="#4a6fa5", fg="white", relief="flat",
-                  font=("", 10), padx=14, pady=3, command=self.copy_list).pack(side="right", padx=16, pady=8)
         self.bind("<Left>", lambda e: self.prev())
         self.bind("<Right>", lambda e: self.next())
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -155,13 +146,6 @@ class App(tk.Tk):
         self.pos = min(len(self.visible()) - 1, self.pos + 1)
         self.render_card()
 
-    def copy_list(self):
-        text = copy_text(self.data)
-        if text:
-            self.clipboard_clear()
-            self.clipboard_append(text)
-        self.status.config(text="已复制到剪贴板" if text else "没有可复制的内容")
-
 
 class TaskCard(tk.Frame):
     def __init__(self, master, app, index, task):
@@ -187,7 +171,7 @@ class TaskCard(tk.Frame):
         tk.Checkbutton(controls, text="选定做", variable=self.sel_var, bg="white",
                        fg="#4a6fa5", activebackground="white", font=("", 11, "bold"),
                        command=self.on_select).pack(side="left")
-        tk.Label(controls, text="意见", bg="white", fg="#8a857d", font=("", 9)).pack(side="left", padx=(18, 0))
+        tk.Label(controls, text="标注", bg="white", fg="#8a857d", font=("", 9)).pack(side="left", padx=(18, 0))
         fb = app.state["feedback"].get(task["title"], {})
         self.tag_vars = {}
         for g in TAGS:
@@ -197,10 +181,24 @@ class TaskCard(tk.Frame):
                            font=("", 9), indicatoron=False, padx=5, pady=1,
                            command=lambda v=var, g=g: self.on_tag(v, g)).pack(side="left", padx=(4, 0))
             self.tag_vars[g] = var
-        self.entry = tk.Entry(controls, font=("", 10), bd=1, relief="solid")
-        self.entry.insert(0, fb.get("text", ""))
-        self.entry.pack(side="left", fill="x", expand=True, padx=(8, 0), ipady=2)
-        self.entry.bind("<KeyRelease>", lambda e: self.on_text())
+        tk.Label(self, text="详细理由（随输入自动保存，点「记录」存入历史）", bg="white",
+                 fg="#8a857d", font=("", 9)).pack(anchor="w", pady=(10, 2))
+        self.text = tk.Text(self, height=6, font=("", 10), bd=1, relief="solid", wrap="word")
+        self.text.insert("1.0", fb.get("text", ""))
+        self.text.pack(fill="both", expand=True)
+        self.text.bind("<KeyRelease>", lambda e: self.on_text())
+        self.text.bind("<FocusOut>", lambda e: self.on_text())
+        foot = tk.Frame(self, bg="white")
+        foot.pack(fill="x", pady=(6, 0))
+        self.history_label = tk.Label(foot, text=self.history_text(fb), bg="white",
+                                      fg="#8a857d", font=("", 9))
+        self.history_label.pack(side="left")
+        tk.Button(foot, text="记录本次标注", bg="#4a6fa5", fg="white", relief="flat",
+                  font=("", 9), padx=10, pady=1, command=self.on_record).pack(side="right")
+
+    def history_text(self, fb):
+        n = len(fb.get("history", []))
+        return f"历史 {n} 条" if n else "暂无历史"
 
     def current_tag(self):
         for g, var in self.tag_vars.items():
@@ -223,7 +221,14 @@ class TaskCard(tk.Frame):
         self.app.persist()
 
     def on_text(self):
-        self.app.state["feedback"].setdefault(self.task["title"], {})["text"] = self.entry.get().strip()
+        self.app.state["feedback"].setdefault(self.task["title"], {})["text"] = self.text.get("1.0", "end").strip()
+        self.app.persist()
+
+    def on_record(self):
+        entry = self.app.state["feedback"].setdefault(self.task["title"], {})
+        record(entry, self.current_tag(), self.text.get("1.0", "end").strip(),
+               time.strftime("%m-%d %H:%M"))
+        self.history_label.config(text=self.history_text(entry))
         self.app.persist()
 
 

@@ -101,42 +101,37 @@ class PruneFeedbackTest(unittest.TestCase):
         self.assertIn("丙", pruned["feedback"])
         self.assertNotIn("甲", pruned["feedback"])
 
+    def test_history_only_kept(self):
+        state = {"selected": [], "feedback": {
+            "甲": {"tag": "", "text": "", "history": [{"time": "09-06 10:00", "tag": "不做", "text": ""}]},
+        }}
+        self.assertIn("甲", task_board.prune_feedback(state)["feedback"])
+
     def test_all_empty_gives_empty(self):
         state = {"selected": [], "feedback": {"甲": {"tag": "", "text": ""}}}
         self.assertEqual(task_board.prune_feedback(state)["feedback"], {})
 
 
-class CopyTextTest(unittest.TestCase):
-    def test_selected_only(self):
-        data = sample_data()
-        data["state"] = {"selected": [0], "feedback": {}}
-        self.assertEqual(task_board.copy_text(data),
-                         "本轮选定任务：\n- 任务甲")
+class RecordTest(unittest.TestCase):
+    def test_record_updates_and_appends(self):
+        entry = {}
+        task_board.record(entry, "先做", "趁热打铁", "09-06 10:00")
+        self.assertEqual(entry["tag"], "先做")
+        self.assertEqual(entry["text"], "趁热打铁")
+        self.assertEqual(entry["history"], [{"time": "09-06 10:00", "tag": "先做", "text": "趁热打铁"}])
 
-    def test_feedback_only(self):
-        data = sample_data()
-        data["state"] = {"selected": [],
-                         "feedback": {"任务乙": {"tag": "有异议", "text": "理由"}}}
-        self.assertEqual(task_board.copy_text(data),
-                         "意见反馈：\n- 有异议：任务乙 —— 理由")
+    def test_record_keeps_previous_tag(self):
+        entry = {"tag": "先做"}
+        task_board.record(entry, "", "补充理由", "09-06 10:01")
+        self.assertEqual(entry["tag"], "先做")
+        self.assertEqual(entry["history"][0]["tag"], "先做")
 
-    def test_both_sections(self):
-        data = sample_data()
-        data["state"] = {"selected": [0, 1],
-                         "feedback": {"任务乙": {"tag": "缓做", "text": ""}}}
-        text = task_board.copy_text(data)
-        self.assertIn("- 任务甲", text)
-        self.assertIn("- 任务乙", text)
-        self.assertIn("- 缓做：任务乙", text)
-
-    def test_tagless_feedback_falls_back(self):
-        data = sample_data()
-        data["state"] = {"selected": [], "feedback": {"任务甲": {"tag": "", "text": "先看看"}}}
-        self.assertEqual(task_board.copy_text(data),
-                         "意见反馈：\n- 意见：任务甲 —— 先看看")
-
-    def test_empty_state_gives_empty_string(self):
-        self.assertEqual(task_board.copy_text(sample_data()), "")
+    def test_record_twice_gives_two_history(self):
+        entry = {}
+        task_board.record(entry, "先做", "一", "09-06 10:00")
+        task_board.record(entry, "缓做", "改主意了", "09-06 10:05")
+        self.assertEqual(entry["tag"], "缓做")
+        self.assertEqual(len(entry["history"]), 2)
 
 
 class DataFileTest(unittest.TestCase):
